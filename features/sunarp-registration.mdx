@@ -1,0 +1,415 @@
+---
+title: 'SUNARP Registration'
+description: 'Register valuable assets with SUNARP (Superintendencia Nacional de los Registros Públicos)'
+---
+
+## Overview
+
+The SUNARP Registration feature (Inscripción SUNARP) enables you to register valuable organizational assets with Peru's National Superintendency of Public Registries. This legal registration provides official documentation and protection for high-value assets such as vehicles, real estate, and significant equipment.
+
+<Info>
+  SUNARP registrations are stored in the `inscripcion_sunarp` database table. Each registration includes asset details, pricing information, supplier data, and arrival dates for complete documentation.
+</Info>
+
+## What is SUNARP?
+
+SUNARP (Superintendencia Nacional de los Registros Públicos) is Peru's government agency responsible for maintaining public registries of property, vehicles, and other valuable assets. Registering assets with SUNARP provides:
+
+- **Legal Protection**: Official government recognition of ownership
+- **Public Record**: Searchable documentation of asset ownership
+- **Title Documentation**: Legal proof for insurance, financing, and transfers
+- **Compliance**: Meeting regulatory requirements for asset tracking
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Vehicle Registration" icon="car">
+    Register company vehicles with SUNARP for legal ownership documentation
+  </Card>
+  <Card title="Property Documentation" icon="building">
+    Record real estate and building acquisitions in the public registry
+  </Card>
+  <Card title="High-Value Assets" icon="gem">
+    Register expensive equipment and machinery for insurance and legal purposes
+  </Card>
+  <Card title="Legal Compliance" icon="scale-balanced">
+    Meet regulatory requirements for asset registration and reporting
+  </Card>
+</CardGroup>
+
+## Registering an Asset with SUNARP
+
+<Steps>
+  <Step title="Access SUNARP Registration">
+    Navigate to the InscripcionSUNARP page from the main menu. You'll see a list of all SUNARP-registered assets.
+  </Step>
+  
+  <Step title="Open Registration Form">
+    Click the **Registrar** button to open the SUNARP registration modal.
+  </Step>
+  
+  <Step title="Enter Asset Information">
+    Complete all required fields for the SUNARP registration:
+    
+    <ParamField path="descripcion" type="string" required>
+      **Description (Descripción)**: Detailed description of the asset being registered
+      - Must be 4-20 characters
+      - Only letters allowed (including Spanish characters)
+      - Be specific: "Camioneta Toyota", "Edificio Oficinas"
+      - This description appears on official SUNARP documentation
+    </ParamField>
+    
+    <ParamField path="cantidad" type="integer" required>
+      **Quantity (Cantidad)**: Number of units being registered
+      - Must be a positive integer
+      - Typically 1 for unique assets like vehicles or buildings
+      - Can be higher for batches of identical items
+    </ParamField>
+    
+    <ParamField path="precio" type="number" required>
+      **Price (Precio)**: Purchase price or declared value of the asset
+      - Must be numeric
+      - Stored as double precision for accuracy
+      - Used for valuation and insurance purposes
+      - Example: 45000.00, 150000.50
+    </ParamField>
+    
+    <ParamField path="nombreproveedor" type="string" required>
+      **Supplier Name (Nombre Proveedor)**: Seller or supplier of the asset
+      - Must be 4-20 characters
+      - Only letters allowed
+      - Should match supplier records
+      - Required for provenance documentation
+    </ParamField>
+    
+    <ParamField path="fechallegada" type="date" required>
+      **Arrival Date (Fecha Llegada)**: Date the asset was acquired or received
+      - Format: YYYY-MM-DD
+      - Used for registration date calculations
+      - Important for warranty and depreciation tracking
+    </ParamField>
+  </Step>
+  
+  <Step title="Submit for Registration">
+    Click **Registrar** to create the SUNARP record. The system will:
+    - Validate all required fields
+    - Insert the registration into the database with a unique code
+    - Display confirmation message
+    - The record can now be used for official SUNARP filing
+  </Step>
+</Steps>
+
+<Warning>
+  The information entered in SUNARP registration may be used for official government documentation. Ensure all details are accurate and complete before submitting.
+</Warning>
+
+## Field Reference
+
+SUNARP registrations contain the following information:
+
+| Database Field | Display Name | Type | Description |
+|----------------|--------------|------|-------------|
+| `codigo_inscri` | Código Inscripción | Integer | Auto-generated unique registration code |
+| `descripcion_bien` | Descripción | String | Asset description (4-20 characters) |
+| `cantidad_bien` | Cantidad | Integer | Quantity of assets |
+| `precio_bien` | Precio | Double | Purchase price or declared value |
+| `nom_provee` | Nombre Proveedor | String | Supplier/seller name (4-20 characters) |
+| `fecha_llegada` | Fecha Llegada | Date | Acquisition/arrival date (YYYY-MM-DD) |
+
+## Editing a SUNARP Registration
+
+<Steps>
+  <Step title="Locate the Registration">
+    Use the DataTable search to find the SUNARP registration by code, description, or supplier.
+  </Step>
+  
+  <Step title="Open Edit Modal">
+    Click the green **Editar** button on the registration row. The system loads current data via AJAX from `ServletSunarpJSON`.
+  </Step>
+  
+  <Step title="Update Information">
+    Modify any fields as needed:
+    - Registration code cannot be changed (read-only)
+    - All validation rules continue to apply
+    - Price can be updated for valuation changes
+  </Step>
+  
+  <Step title="Save Changes">
+    Click **Registrar** to update the record. The system executes:
+    ```sql
+    UPDATE inscripcion_sunarp 
+    SET descripcion_bien=?, cantidad_bien=?, precio_bien=?, 
+        nom_provee=?, fecha_llegada=? 
+    WHERE codigo_inscri=?
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  Changes to SUNARP registrations update your internal records. If the asset is already registered with the government SUNARP office, you may need to file amended documentation with them separately.
+</Note>
+
+## Deleting a SUNARP Registration
+
+<Warning>
+  **Important Legal Consideration**: Deleting a SUNARP registration removes it from your system but does not remove official government registrations. If the asset has been filed with SUNARP, contact the appropriate office to cancel or transfer the registration.
+</Warning>
+
+<Steps>
+  <Step title="Select Registration">
+    Find the SUNARP registration in the table.
+  </Step>
+  
+  <Step title="Initiate Deletion">
+    Click the red **Eliminar** button.
+  </Step>
+  
+  <Step title="Confirm Deletion">
+    A modal asks "Seguro de eliminar?":
+    - Click **SI** to confirm deletion
+    - Click **NO** to cancel
+  </Step>
+  
+  <Step title="Complete Deletion">
+    The system removes the record:
+    ```sql
+    DELETE FROM inscripcion_sunarp WHERE codigo_inscri=?
+    ```
+  </Step>
+</Steps>
+
+## Validation Rules
+
+<Accordion title="Field Validation Details">
+  ### Description (Descripción)
+  - **Pattern**: `^[a-zA-ZñÑ\s\áéíóúÁÉÍÓÚ]{4,20}$`
+  - **Length**: 4-20 characters
+  - **Allowed**: Letters (including Spanish characters), spaces
+  - **Error Message**: "Campo descripción solo letras MIN:4 - MAX:20"
+  
+  ### Quantity (Cantidad)
+  - **Pattern**: `^\d+$`
+  - **Type**: Positive integer only
+  - **No decimals or negative numbers**
+  - **Error Message**: "Campo cantidad debe ser #entero positivo"
+  
+  ### Price (Precio)
+  - **Pattern**: `^\d+$`
+  - **Note**: Client validation checks for digits only (may need enhancement for decimals)
+  - **Database**: Stored as double precision to support decimal values
+  - **Error Message**: "Campo precio debe ser numerico"
+  
+  ### Supplier Name (Nombre Proveedor)
+  - **Pattern**: `^[a-zA-ZñÑ\s\áéíóúÁÉÍÓÚ]{4,20}$`
+  - **Length**: 4-20 characters
+  - **Allowed**: Letters and Spanish characters
+  - **Error Message**: "Campo proveedor MIN:4 - MAX:20"
+  
+  ### Arrival Date (Fecha Llegada)
+  - **Pattern**: `^([0-9]{4})-([0-9]{1,2})-([0-9]{1,2})$`
+  - **Format**: YYYY-MM-DD
+  - **Example**: 2026-03-04
+  - **Error Message**: "Campo fecha es obligatorio yyyy-mm-dd"
+</Accordion>
+
+## Viewing SUNARP Registrations
+
+The registration list displays all SUNARP-registered assets in an interactive DataTable:
+
+### Columns Displayed
+- **Código**: Unique registration identifier
+- **Descripción**: Asset description
+- **Cantidad**: Number of units
+- **Precio**: Asset value
+- **Nombre Proveedor**: Supplier/seller
+- **Fecha Llegada**: Acquisition date
+- **Actions**: Edit and delete buttons
+
+### Table Features
+- **Search**: Filter registrations by any field
+- **Sort**: Click column headers to sort data
+- **Pagination**: Navigate through multiple pages
+- **Per Page**: Choose display count (10, 25, 50, 100)
+
+## Business Rules
+
+<Accordion title="When to Register with SUNARP">
+  ### High-Value Assets
+  Register assets that meet these criteria:
+  - Vehicles (cars, trucks, machinery)
+  - Real estate and buildings
+  - Equipment over certain value thresholds
+  - Assets requiring title documentation
+  - Items needed for insurance coverage
+  
+  ### Regulatory Requirements
+  Consider registering when:
+  - Required by Peruvian law for the asset type
+  - Needed for financing or loans
+  - Required for insurance policies
+  - Organization policy mandates registration
+  - Asset will be transferred or sold
+</Accordion>
+
+<Accordion title="Registration Workflow">
+  ### Internal Process
+  1. Acquire the asset from supplier
+  2. Record basic asset information in Asset Management
+  3. Gather documentation (invoices, certificates, etc.)
+  4. Create SUNARP registration in the system
+  5. Prepare official documentation for SUNARP office
+  6. Submit to appropriate SUNARP registry
+  7. Update internal records with official registration number
+  
+  ### Documentation Needed
+  - Purchase invoice or receipt
+  - Supplier identification
+  - Asset specifications
+  - Proof of payment
+  - Organization's legal documentation
+  - Any certificates or warranties
+</Accordion>
+
+## Database Operations
+
+The system performs these SQL operations:
+
+```sql
+-- Create SUNARP registration
+INSERT INTO inscripcion_sunarp 
+VALUES(null, ?, ?, ?, ?, ?)
+
+-- Update registration
+UPDATE inscripcion_sunarp 
+SET descripcion_bien=?, cantidad_bien=?, precio_bien=?, 
+    nom_provee=?, fecha_llegada=? 
+WHERE codigo_inscri=?
+
+-- Delete registration
+DELETE FROM inscripcion_sunarp WHERE codigo_inscri=?
+
+-- Find by code
+SELECT * FROM inscripcion_sunarp WHERE codigo_inscri=?
+
+-- List all registrations
+SELECT * FROM inscripcion_sunarp
+```
+
+## Integration with Other Features
+
+<Note>
+  **Asset Management Connection**: While SUNARP registrations share similar fields with regular assets, they are maintained in a separate table (`inscripcion_sunarp` vs `bienes`). This allows:
+  
+  - Standard assets for day-to-day inventory
+  - SUNARP registrations for high-value items requiring legal documentation
+  - Different reporting and compliance workflows
+  - Separation of general inventory from legally registered assets
+</Note>
+
+## Related Features
+
+<CardGroup cols={3}>
+  <Card title="Asset Management" href="/features/asset-management">
+    Manage general organizational assets
+  </Card>
+  <Card title="Purchase Orders" href="/features/purchase-orders">
+    Track procurement documentation
+  </Card>
+  <Card title="Supplier Management" href="/features/supplier-management">
+    Maintain supplier information
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Note>
+  ### Recommended Guidelines
+  
+  **Before Registration**
+  - Verify asset qualifies for SUNARP registration
+  - Gather all required documentation
+  - Confirm accurate pricing and valuation
+  - Validate supplier information
+  
+  **During Registration**
+  - Use precise, descriptive asset names
+  - Include all identifying information
+  - Record exact purchase prices
+  - Maintain copies of all supporting documents
+  
+  **After Registration**
+  - Keep registration codes accessible
+  - File supporting documentation securely
+  - Update records when assets are transferred or disposed
+  - Conduct periodic audits of registered assets
+  
+  **For Compliance**
+  - Follow organizational approval processes
+  - Ensure timely filing with government SUNARP office
+  - Maintain alignment between internal records and official registrations
+  - Track registration renewal dates if applicable
+</Note>
+
+## Common Registration Scenarios
+
+<Accordion title="Vehicle Registration">
+  When registering a vehicle:
+  - **Description**: Include make, model, year (e.g., "Toyota Hilux")
+  - **Quantity**: Typically 1
+  - **Price**: Purchase price or declared value
+  - **Supplier**: Dealership or seller name
+  - **Date**: Date of purchase or delivery
+  
+  Additional documentation to gather:
+  - Vehicle identification number (VIN)
+  - Purchase invoice
+  - Previous registration documents
+  - Proof of payment
+</Accordion>
+
+<Accordion title="Real Estate Registration">
+  When registering property:
+  - **Description**: Property type and location (e.g., "Oficina Lima")
+  - **Quantity**: Usually 1
+  - **Price**: Purchase price or assessed value
+  - **Supplier**: Seller or real estate company
+  - **Date**: Closing or transfer date
+  
+  Additional requirements:
+  - Property deed
+  - Title search results
+  - Survey documents
+  - Tax assessment records
+</Accordion>
+
+<Accordion title="Equipment Registration">
+  When registering equipment:
+  - **Description**: Equipment type (e.g., "Generador Industrial")
+  - **Quantity**: Number of units
+  - **Price**: Total purchase value
+  - **Supplier**: Equipment vendor
+  - **Date**: Delivery date
+  
+  Supporting information:
+  - Serial numbers
+  - Manufacturer specifications
+  - Warranty documentation
+  - Installation certificates
+</Accordion>
+
+## Technical Implementation
+
+<Info>
+  **For Developers**: SUNARP registrations are managed through:
+  - Entity: `com.bienes.entidad.InscripcionSUNARP`
+  - DAO Interface: `com.bienes.interfaces.InscripcionSUNARPDAO`
+  - DAO Implementation: `com.bienes.dao.MySqlInscripcionSUNARPDAO`
+  - Servlet: `com.bienes.controlador.ServletSunarp`
+  - Service: `com.bienes.services.InscripcionSUNARPServices`
+  - JSP View: `/InscripcionSUNARP.jsp`
+  - JSON API: `ServletSunarpJSON`
+  
+  The implementation uses the same UI framework as other modules (Bootstrap 5, DataTables, Bootstrap Validator) for consistency.
+  
+  Note: SUNARP registrations are maintained separately from general assets to support different business processes and compliance requirements.
+</Info>

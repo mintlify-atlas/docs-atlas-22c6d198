@@ -1,0 +1,284 @@
+---
+title: 'ProveedorServices'
+description: 'Service layer for managing Proveedor (provider/supplier) operations'
+---
+
+## Overview
+
+**Package:** `com.bienes.services`
+
+**Full Class Name:** `com.bienes.services.ProveedorServices`
+
+The `ProveedorServices` class provides business logic for managing providers/suppliers in the system. It handles all CRUD operations for the `Proveedor` entity, acting as an intermediary between servlets and the data access layer.
+
+### Dependencies
+
+- **DAO Factory:** `DAOFactory.getDAOFactory(1)` - MySQL implementation
+- **DAO Interface:** `ProveedorDAO`
+- **Entity:** `com.bienes.entidad.Proveedor`
+
+```java ProveedorServices.java:12-13
+private DAOFactory fabrica = DAOFactory.getDAOFactory(1);
+private ProveedorDAO objProveedor = fabrica.getProveedorDAO();
+```
+
+---
+
+## Methods
+
+### registrarPro
+
+Registers a new Proveedor (provider/supplier) in the system.
+
+<ParamField path="bean" type="Proveedor" required>
+  The Proveedor entity object containing provider information:
+  - `nom_prove` - Provider name
+  - `dist_prove` - District/location
+  - `telf_prove` - Phone number
+  - `estado_prove` - Status (active/inactive)
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected:
+  - `> 0` - Registration successful
+  - `0` or `< 0` - Registration failed
+</ResponseField>
+
+```java ProveedorServices.java:15-17
+public int registrarPro(Proveedor bean) {
+    return objProveedor.savePro(bean);
+}
+```
+
+---
+
+### actualizarPro
+
+Updates an existing Proveedor record.
+
+<ParamField path="bean" type="Proveedor" required>
+  The Proveedor entity object with updated information. Must include:
+  - `id_prove` - ID of the provider to update
+  - All other fields to be updated
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected:
+  - `> 0` - Update successful
+  - `0` or `< 0` - Update failed
+</ResponseField>
+
+```java ProveedorServices.java:18-20
+public int actualizarPro(Proveedor bean) {
+    return objProveedor.updatePro(bean);
+}
+```
+
+---
+
+### eliminarPorIdPro
+
+Deletes a Proveedor by its ID.
+
+<ParamField path="id" type="int" required>
+  The unique identifier (`id_prove`) of the Proveedor to delete
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected:
+  - `> 0` - Deletion successful
+  - `0` or `< 0` - Deletion failed
+</ResponseField>
+
+```java ProveedorServices.java:21-23
+public int eliminarPorIdPro(int id) {
+    return objProveedor.deletePro(id);
+}
+```
+
+---
+
+### buscarPorIdPro
+
+Retrieves a Proveedor by its ID.
+
+<ParamField path="id" type="int" required>
+  The unique identifier (`id_prove`) of the Proveedor to retrieve
+</ParamField>
+
+<ResponseField name="return" type="Proveedor">
+  The Proveedor object if found, `null` otherwise. Contains:
+  - `id_prove` - Provider ID
+  - `nom_prove` - Provider name
+  - `dist_prove` - District/location
+  - `telf_prove` - Phone number
+  - `estado_prove` - Status
+</ResponseField>
+
+```java ProveedorServices.java:24-26
+public Proveedor buscarPorIdPro(int id) {
+    return objProveedor.findByIdPro(id);
+}
+```
+
+---
+
+### listarTodos
+
+Retrieves all Proveedor records from the database.
+
+<ResponseField name="return" type="List<Proveedor>">
+  A list containing all Proveedor objects in the system. Returns an empty list if no records exist.
+</ResponseField>
+
+```java ProveedorServices.java:27-29
+public List<Proveedor> listarTodos() {
+    return objProveedor.listAll();
+}
+```
+
+---
+
+## Usage Examples
+
+### Servlet Integration
+
+Example from `ServletProveedor.java` showing how servlets use this service:
+
+```java ServletProveedor.java:24-33
+private ProveedorServices servicio1;
+
+public ServletProveedor() {
+    super();
+    servicio1 = new ProveedorServices();
+}
+```
+
+### Registering a New Proveedor
+
+```java ServletProveedor.java:86-101
+Proveedor bean = new Proveedor();
+bean.setNom_prove(nomPro);
+bean.setDist_prove(distPro);
+bean.setTelf_prove(telfPro);
+bean.setEstado_prove(estPro);
+
+int salida = servicio1.registrarPro(bean);
+if (salida > 0) {
+    request.setAttribute("MENSAJE", "Proveedor registrado correctamente");
+} else {
+    request.setAttribute("MENSAJE", "Error en el registro del Proveedor");
+}
+```
+
+### Updating an Existing Proveedor
+
+```java ServletProveedor.java:110-118
+bean.setId_prove(Integer.parseInt(id));
+int salida = servicio1.actualizarPro(bean);
+if (salida > 0) {
+    request.setAttribute("MENSAJE", "Proveedor actualizado correctamente");
+} else {
+    request.setAttribute("MENSAJE", "Error en la actualización");
+}
+```
+
+### Deleting a Proveedor
+
+```java ServletProveedor.java:58-67
+String id = request.getParameter("codigoEliminar");
+int salida = servicio1.eliminarPorIdPro(Integer.parseInt(id));
+if (salida > 0) {
+    request.setAttribute("MENSAJE", "Proveedor eliminado correctamente");
+} else {
+    request.setAttribute("MENSAJE", "Error en la eliminación");
+}
+```
+
+### Listing All Proveedores
+
+```java ServletProveedor.java:129-132
+List<Proveedor> data = servicio1.listarTodos();
+request.setAttribute("listarProveedor", data);
+request.getRequestDispatcher("/proveedor.jsp").forward(request, response);
+```
+
+---
+
+## Error Handling
+
+The service layer returns integer values for CUD operations (Create, Update, Delete):
+
+- **Success:** Return value `> 0` indicates the number of affected rows
+- **Failure:** Return value `<= 0` indicates operation failed
+
+### Common Error Scenarios
+
+1. **Duplicate Provider:** Attempting to register a provider with duplicate information may fail depending on database constraints
+
+2. **Entity Not Found:** When updating or deleting a non-existent Proveedor, the operation returns `0`
+
+3. **Foreign Key Constraints:** Cannot delete a provider that is referenced by Bienes or other entities
+
+4. **Invalid Data:** Missing required fields or invalid format (e.g., phone number) may cause failures
+
+### Servlet-Level Error Handling
+
+Servlets validate input and check return values:
+
+```java
+if (Integer.parseInt(id) == 0) {
+    // New registration
+    int salida = servicio1.registrarPro(bean);
+    if (salida > 0) {
+        request.setAttribute("MENSAJE", "Proveedor registrado correctamente");
+    } else {
+        request.setAttribute("MENSAJE", "Error en el registro del Proveedor");
+    }
+} else {
+    // Update existing
+    bean.setId_prove(Integer.parseInt(id));
+    int salida = servicio1.actualizarPro(bean);
+    // ... error handling
+}
+```
+
+---
+
+## Related Components
+
+### Data Access Layer
+
+- **[ProveedorDAO](/api/dao/proveedor-dao)** - Data access interface
+- **[MySqlProveedorDAO](/api/dao/mysql-proveedor-dao)** - MySQL implementation
+
+### Entity Layer
+
+- **[Proveedor Entity](/api/entities/proveedor)** - Domain model
+
+### Related Services
+
+- **[BienesServices](/api/services/bienes-service)** - Manages goods that reference providers
+- **[GuiaServices](/api/services/guia-service)** - Manages purchase orders that reference providers
+
+### Presentation Layer
+
+- **ServletProveedor** - Main servlet controller at `/ServletProveedor`
+- **ServletProveedorJSON** - JSON API endpoint
+
+---
+
+## Business Rules
+
+### Provider Status
+
+Providers have an `estado_prove` field that tracks their status:
+- Active providers can be associated with new purchase orders
+- The system should validate provider status before creating transactions
+
+### Provider Information
+
+All provider fields are important for:
+- **Contact Management:** `telf_prove` for communication
+- **Location Tracking:** `dist_prove` for logistics
+- **Identification:** `nom_prove` for display in forms and reports

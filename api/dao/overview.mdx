@@ -1,0 +1,296 @@
+---
+title: 'DAO Pattern Overview'
+description: 'Data Access Layer architecture using the DAO pattern with factory and MySQL implementation'
+---
+
+## Introduction
+
+The Data Access Layer implements the **DAO (Data Access Object)** design pattern to separate business logic from database operations. This architecture provides abstraction, maintainability, and flexibility for switching between different data sources.
+
+## Architecture Components
+
+### Package Structure
+
+The DAO layer is organized into three main packages:
+
+```
+com.bienes/
+├── interfaces/          # DAO interface definitions
+│   ├── BienesDAO.java
+│   ├── ProveedorDAO.java
+│   ├── GuiaDAO.java
+│   ├── InscripcionSUNARPDAO.java
+│   └── OperadorDAO.java
+├── dao/                 # MySQL implementations
+│   ├── MySqlBienesDAO.java
+│   ├── MySqlProveedorDAO.java
+│   ├── MySqlGuiaDAO.java
+│   ├── MySqlInscripcionSUNARPDAO.java
+│   └── MySqlOperadorDAO.java
+├── fabrica/             # Factory pattern implementation
+│   ├── DAOFactory.java
+│   └── MySqlDAOFactory.java
+└── utils/               # Database utilities
+    └── MySqlConexion.java
+```
+
+### Design Pattern Benefits
+
+<CardGroup cols={2}>
+  <Card title="Abstraction" icon="layer-group">
+    Interfaces define contracts independent of implementation details
+  </Card>
+  <Card title="Maintainability" icon="wrench">
+    Changes to data access logic are isolated to DAO implementations
+  </Card>
+  <Card title="Testability" icon="vial">
+    Mock implementations can be created for unit testing
+  </Card>
+  <Card title="Flexibility" icon="arrows-rotate">
+    Easy to switch between MySQL, Oracle, or other data sources
+  </Card>
+</CardGroup>
+
+## DAOFactory Pattern
+
+The factory pattern provides a centralized way to obtain DAO instances without exposing implementation details.
+
+### Abstract Factory
+
+```java DAOFactory.java
+public abstract class DAOFactory {
+    // Supported data sources
+    public static final int MYSQL = 1;
+    public static final int ORACLE = 2;
+    public static final int DB2 = 3;
+    public static final int SQLSERVER = 4;
+    public static final int XML = 5;
+    
+    // Abstract methods for each DAO
+    public abstract BienesDAO getBienesDAO();
+    public abstract InscripcionSUNARPDAO getInscripcionSUNARPDAO();
+    public abstract ProveedorDAO getProveedorDAO();
+    public abstract GuiaDAO getGuiaDAO();
+    public abstract OperadorDAO getOperadorDAO();
+    
+    // Factory method
+    public static DAOFactory getDAOFactory(int whichFactory) {
+        switch(whichFactory) {
+            case MYSQL:
+                return new MySqlDAOFactory();
+            // Other implementations...
+            default:
+                return null;
+        }
+    }
+}
+```
+
+### MySQL Factory Implementation
+
+```java MySqlDAOFactory.java
+public class MySqlDAOFactory extends DAOFactory {
+    
+    @Override
+    public BienesDAO getBienesDAO() {
+        return new MySqlBienesDAO();
+    }
+    
+    @Override
+    public GuiaDAO getGuiaDAO() {
+        return new MySqlGuiaDAO();
+    }
+    
+    @Override
+    public InscripcionSUNARPDAO getInscripcionSUNARPDAO() {
+        return new MySqlInscripcionSUNARPDAO();
+    }
+    
+    @Override
+    public ProveedorDAO getProveedorDAO() {
+        return new MySqlProveedorDAO();
+    }
+    
+    @Override
+    public OperadorDAO getOperadorDAO() {
+        return new MySqlOperadorDAO();
+    }
+}
+```
+
+### Usage Example
+
+```java
+// Obtain factory for MySQL
+DAOFactory factory = DAOFactory.getDAOFactory(DAOFactory.MYSQL);
+
+// Get DAO instance
+BienesDAO bienesDAO = factory.getBienesDAO();
+
+// Perform operations
+List<Bienes> bienes = bienesDAO.listAll();
+```
+
+## MySqlConexion Utility
+
+The `MySqlConexion` class provides a centralized connection manager for MySQL database access.
+
+### Connection Configuration
+
+```java MySqlConexion.java
+public class MySqlConexion {
+    
+    public static Connection getConectar() {
+        Connection cn = null;
+        try {
+            // Load MySQL JDBC driver
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            
+            // Database connection parameters
+            String url = "jdbc:mysql://localhost:3306/gestionbienes?serverTimezone=UTC";
+            String user = "root";
+            String pass = "mysql";
+            
+            // Establish connection
+            cn = DriverManager.getConnection(url, user, pass);
+        } catch (ClassNotFoundException | SQLException e) {
+            e.printStackTrace();
+        }
+        return cn;
+    }
+}
+```
+
+<Note>
+The connection uses **MySQL Connector/J 8.0.21** JDBC driver. Ensure the JAR is included in your classpath.
+</Note>
+
+### Connection Parameters
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| **URL** | `jdbc:mysql://localhost:3306/gestionbienes` | Database location |
+| **Timezone** | `UTC` | Server timezone setting |
+| **User** | `root` | Database username |
+| **Password** | `mysql` | Database password |
+| **Database** | `gestionbienes` | Target database name |
+
+## Common DAO Patterns
+
+All DAO implementations follow consistent patterns for CRUD operations:
+
+### 1. Connection Management
+
+```java
+Connection cn = null;
+PreparedStatement pstm = null;
+ResultSet rs = null;
+try {
+    cn = MySqlConexion.getConectar();
+    // Database operations...
+} catch (SQLException e) {
+    e.printStackTrace();
+} finally {
+    // Always close resources
+    if(rs != null) rs.close();
+    if(pstm != null) pstm.close();
+    if(cn != null) cn.close();
+}
+```
+
+### 2. PreparedStatement Usage
+
+All queries use `PreparedStatement` to prevent SQL injection:
+
+```java
+String sql = "SELECT * FROM bienes WHERE codigo_bien=?";
+pstm = cn.prepareStatement(sql);
+pstm.setInt(1, cod);
+rs = pstm.executeQuery();
+```
+
+### 3. Result Mapping
+
+ResultSet data is mapped to entity objects:
+
+```java
+if(rs.next()) {
+    bean = new Bienes();
+    bean.setCodigo_bien(rs.getInt(1));
+    bean.setDescrip_bien(rs.getString(2));
+    bean.setCantidad_bien(rs.getInt(3));
+    // Additional mappings...
+}
+```
+
+### 4. Return Values
+
+- **Insert/Update/Delete**: Returns `int` (number of affected rows, -1 on error)
+- **FindById**: Returns entity object or `null` if not found
+- **ListAll**: Returns `List<Entity>` (empty list if no results)
+
+## Error Handling
+
+<Warning>
+Current implementation prints stack traces. For production, consider:
+- Logging frameworks (Log4j, SLF4J)
+- Custom exceptions (DAOException)
+- Transaction rollback mechanisms
+- Connection pooling (HikariCP, C3P0)
+</Warning>
+
+## Available DAOs
+
+<CardGroup cols={2}>
+  <Card title="BienesDAO" icon="box" href="/api/dao/bienes-dao">
+    Manage asset/goods inventory with purchase order tracking
+  </Card>
+  <Card title="ProveedorDAO" icon="truck" href="/api/dao/proveedor-dao">
+    Supplier management with contact and status information
+  </Card>
+  <Card title="GuiaDAO" icon="file-invoice" href="/api/dao/guia-dao">
+    Purchase guides and order management
+  </Card>
+  <Card title="InscripcionSUNARPDAO" icon="landmark" href="/api/dao/sunarp-dao">
+    SUNARP (Public Registry) inscription records
+  </Card>
+  <Card title="OperadorDAO" icon="user" href="/api/dao/operador-dao">
+    Operator/personnel management with status tracking
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+### Resource Management
+- Always close `ResultSet`, `PreparedStatement`, and `Connection` in finally blocks
+- Use try-with-resources (Java 7+) for automatic resource management
+- Consider implementing connection pooling for better performance
+
+### Security
+- Never concatenate SQL strings with user input
+- Always use `PreparedStatement` with parameter binding
+- Store credentials in configuration files or environment variables
+- Implement proper authentication and authorization
+
+### Performance
+- Reuse PreparedStatement objects when executing the same query multiple times
+- Use batch operations for bulk inserts/updates
+- Implement pagination for large result sets
+- Consider caching frequently accessed data
+
+## Next Steps
+
+<Steps>
+  <Step title="Explore DAO Implementations">
+    Review individual DAO documentation for specific method signatures and SQL queries
+  </Step>
+  <Step title="Understand Entity Models">
+    Check entity class definitions to understand data structures
+  </Step>
+  <Step title="Implement Service Layer">
+    Use DAOs in service classes to implement business logic
+  </Step>
+  <Step title="Add Error Handling">
+    Enhance error handling with custom exceptions and logging
+  </Step>
+</Steps>

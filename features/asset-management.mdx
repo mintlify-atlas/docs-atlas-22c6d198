@@ -1,0 +1,227 @@
+---
+title: 'Asset Management'
+description: 'Manage and track organizational assets from registration to disposal'
+---
+
+## Overview
+
+The Asset Management feature allows you to register, track, and manage all organizational assets (bienes) throughout their lifecycle. Each asset is linked to a purchase order and supplier, providing complete traceability of your organization's inventory.
+
+<Info>
+  Assets are stored in the `bienes` database table and automatically linked to purchase orders through the `codigo_ordencompra` field.
+</Info>
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Asset Registration" icon="plus">
+    Register new assets received from suppliers with complete details including quantity, description, and arrival date
+  </Card>
+  <Card title="Inventory Tracking" icon="boxes">
+    Track all organizational assets with real-time visibility of quantities and supplier information
+  </Card>
+  <Card title="Purchase Order Linking" icon="link">
+    Connect assets to their originating purchase orders for complete procurement audit trails
+  </Card>
+  <Card title="Asset Updates" icon="pen">
+    Modify asset information as needed, including quantity adjustments and description updates
+  </Card>
+</CardGroup>
+
+## Registering a New Asset
+
+<Steps>
+  <Step title="Access Asset Management">
+    Navigate to the Bienes page from the main menu. You'll see a list of all registered assets.
+  </Step>
+  
+  <Step title="Open Registration Form">
+    Click the **Registrar** button to open the asset registration modal.
+  </Step>
+  
+  <Step title="Enter Asset Details">
+    Fill in all required fields:
+    
+    <ParamField path="descripcion" type="string" required>
+      **Description**: Asset description or name
+      - Must be 4-20 characters
+      - Only letters allowed (including Spanish characters)
+      - Example: "Laptop Dell", "Escritorio"
+    </ParamField>
+    
+    <ParamField path="cantidad" type="integer" required>
+      **Quantity**: Number of units received
+      - Must be a positive integer
+      - Example: 5, 10, 1
+    </ParamField>
+    
+    <ParamField path="nombreproveedor" type="string" required>
+      **Supplier Name**: Name of the supplier who provided the asset
+      - Must be 4-20 characters
+      - Only letters allowed
+      - Example: "Comercial Lopez"
+    </ParamField>
+    
+    <ParamField path="fechallegada" type="date" required>
+      **Arrival Date**: Date the asset arrived at your facility
+      - Format: YYYY-MM-DD
+      - Example: 2026-03-04
+    </ParamField>
+    
+    <ParamField path="codigocompra" type="integer" required>
+      **Purchase Order Code**: Reference to the purchase order
+      - Must be numeric
+      - Must match an existing purchase order code
+      - Links the asset to procurement documentation
+    </ParamField>
+  </Step>
+  
+  <Step title="Submit the Form">
+    Click **Grabar** to save the asset. The system will:
+    - Validate all fields meet the requirements
+    - Verify the purchase order code exists
+    - Insert the record into the database
+    - Display a success or error message
+  </Step>
+</Steps>
+
+<Warning>
+  The purchase order code (`codigo_ordencompra`) must exist in the system before you can register an asset. If you receive an error message "La Orden de Compra y sus datos no estan registrados", you need to create the purchase order first.
+</Warning>
+
+## Field Reference
+
+Assets contain the following information in the database:
+
+| Database Field | Display Name | Type | Description |
+|----------------|--------------|------|-------------|
+| `codigo_bien` | Código | Integer | Auto-generated unique identifier |
+| `descrip_bien` | Descripción | String | Asset description (4-20 characters) |
+| `cantidad_bien` | Cantidad | Integer | Quantity of units |
+| `nom_provee` | Proveedor | String | Supplier name (4-20 characters) |
+| `fecha_llegada` | Fecha Llegada | Date | Arrival date (YYYY-MM-DD format) |
+| `codigo_ordencompra` | Código Compra | Integer | Purchase order reference |
+
+## Editing an Asset
+
+<Steps>
+  <Step title="Locate the Asset">
+    Use the DataTable search and filter features to find the asset you want to modify.
+  </Step>
+  
+  <Step title="Click Edit">
+    Click the green **Editar** button on the asset's row. The system loads the current data via AJAX.
+  </Step>
+  
+  <Step title="Modify Fields">
+    Update any fields as needed. All validation rules still apply.
+  </Step>
+  
+  <Step title="Save Changes">
+    Click **Grabar** to update the asset. The system executes an UPDATE query on the `bienes` table.
+  </Step>
+</Steps>
+
+## Deleting an Asset
+
+<Warning>
+  Asset deletion is permanent and cannot be undone. Ensure you have proper authorization before deleting assets.
+</Warning>
+
+<Steps>
+  <Step title="Select Asset to Delete">
+    Find the asset in the table listing.
+  </Step>
+  
+  <Step title="Click Delete">
+    Click the red **Eliminar** button on the asset's row.
+  </Step>
+  
+  <Step title="Confirm Deletion">
+    A confirmation modal will appear asking "Seguro de eliminar?". Click **SI** to confirm or **NO** to cancel.
+  </Step>
+  
+  <Step title="Deletion Complete">
+    The system removes the record from the database and refreshes the asset list.
+  </Step>
+</Steps>
+
+## Querying Assets by Purchase Order
+
+You can view all assets associated with a specific purchase order:
+
+<Steps>
+  <Step title="Access the Query Page">
+    Navigate to "Consultar Bien por Orden de Compra" from the menu.
+  </Step>
+  
+  <Step title="Select Purchase Order">
+    Choose a purchase order code from the dropdown. The dropdown is populated with all available purchase orders.
+  </Step>
+  
+  <Step title="Click Consultar">
+    The system executes a JOIN query between `bienes` and `grr-ordendecompra` tables:
+    
+    ```sql
+    SELECT b.codigo_bien, b.descrip_bien, b.cantidad_bien, 
+           b.nom_provee, b.fecha_llegada, b.codigo_ordencompra 
+    FROM bienes b 
+    JOIN `grr-ordendecompra` a ON b.codigo_ordencompra = a.codigo 
+    WHERE a.codigo = ?
+    ```
+  </Step>
+  
+  <Step title="Review Results">
+    All assets linked to that purchase order appear in the results table.
+  </Step>
+</Steps>
+
+## Business Rules
+
+<Accordion title="Validation Rules">
+  - **Description**: Must be alphabetic characters only, 4-20 characters in length
+  - **Quantity**: Must be a positive integer (no decimals, no negatives)
+  - **Supplier Name**: Must be alphabetic, 4-20 characters
+  - **Arrival Date**: Must follow YYYY-MM-DD format
+  - **Purchase Order Code**: Must be numeric and exist in the purchase order table
+</Accordion>
+
+<Accordion title="Database Operations">
+  The system performs the following SQL operations:
+  
+  - **Insert**: `INSERT INTO bienes VALUES(null, ?, ?, ?, ?, ?)`
+  - **Update**: `UPDATE bienes SET descrip_bien=?, cantidad_bien=?, nom_provee=?, fecha_llegada=?, codigo_ordencompra=? WHERE codigo_bien=?`
+  - **Delete**: `DELETE FROM bienes WHERE codigo_bien=?`
+  - **Select All**: `SELECT * FROM bienes`
+  - **Find by ID**: `SELECT * FROM bienes WHERE codigo_bien=?`
+</Accordion>
+
+<Accordion title="User Authentication">
+  All asset management pages require active user sessions. If the `LISTA` session attribute is null, users are redirected to the login page.
+</Accordion>
+
+## Related Features
+
+<CardGroup cols={3}>
+  <Card title="Purchase Orders" href="/features/purchase-orders">
+    Create purchase orders that assets reference
+  </Card>
+  <Card title="Supplier Management" href="/features/supplier-management">
+    Manage supplier information for asset tracking
+  </Card>
+  <Card title="SUNARP Registration" href="/features/sunarp-registration">
+    Register valuable assets with SUNARP
+  </Card>
+</CardGroup>
+
+## Technical Implementation
+
+<Note>
+  **For Developers**: Assets are managed through the following components:
+  - Entity: `com.bienes.entidad.Bienes`
+  - DAO: `com.bienes.dao.MySqlBienesDAO`
+  - Servlet: `com.bienes.controlador.ServletBienes`
+  - Service: `com.bienes.services.BienesServices`
+  - JSP: `/Bienes.jsp`, `/ConsultarBienPorOrdendeCompra.jsp`
+  - JSON API: `ServletBienesJSON`, `ServletBienporCompraJSON`
+</Note>

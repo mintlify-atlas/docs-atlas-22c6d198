@@ -1,0 +1,282 @@
+---
+title: 'BienesServices'
+description: 'Service layer for managing Bienes (goods/assets) operations'
+---
+
+## Overview
+
+**Package:** `com.bienes.services`
+
+**Full Class Name:** `com.bienes.services.BienesServices`
+
+The `BienesServices` class provides business logic for managing goods and assets in the system. It acts as an intermediary between the presentation layer (servlets) and the data access layer (DAOs), implementing CRUD operations for the `Bienes` entity.
+
+### Dependencies
+
+- **DAO Factory:** `DAOFactory.getDAOFactory(1)` - MySQL implementation
+- **DAO Interface:** `BienesDAO`
+- **Entity:** `com.bienes.entidad.Bienes`
+
+```java BienesServices.java:11-14
+private DAOFactory fabrica = DAOFactory.getDAOFactory(1);
+private BienesDAO objBienes = fabrica.getBienesDAO();
+```
+
+---
+
+## Methods
+
+### registrar
+
+Registers a new Bien (good/asset) in the system.
+
+<ParamField path="bean" type="Bienes" required>
+  The Bienes entity object containing all the goods information:
+  - `descrip_bien` - Description of the good
+  - `cantidad_bien` - Quantity
+  - `nom_provee` - Provider name
+  - `fecha_llegada` - Arrival date
+  - `codigoOrdendeCompra` - Purchase order code
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected:
+  - `> 0` - Registration successful
+  - `0` or `< 0` - Registration failed
+</ResponseField>
+
+```java BienesServices.java:19-21
+public int registrar(Bienes bean) {
+    return objBienes.save(bean);
+}
+```
+
+---
+
+### actualizar
+
+Updates an existing Bien record.
+
+<ParamField path="bean" type="Bienes" required>
+  The Bienes entity object with updated information. Must include:
+  - `codigo_bien` - ID of the good to update
+  - All other fields to be updated
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected:
+  - `> 0` - Update successful
+  - `0` or `< 0` - Update failed
+</ResponseField>
+
+```java BienesServices.java:22-24
+public int actualizar(Bienes bean) {
+    return objBienes.update(bean);
+}
+```
+
+---
+
+### eliminarPorId
+
+Deletes a Bien by its ID.
+
+<ParamField path="cod" type="int" required>
+  The unique identifier (`codigo_bien`) of the Bien to delete
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected:
+  - `> 0` - Deletion successful
+  - `0` or `< 0` - Deletion failed
+</ResponseField>
+
+```java BienesServices.java:25-27
+public int eliminarPorId(int cod) {
+    return objBienes.delete(cod);
+}
+```
+
+---
+
+### buscarPorId
+
+Retrieves a Bien by its ID.
+
+<ParamField path="cod" type="int" required>
+  The unique identifier (`codigo_bien`) of the Bien to retrieve
+</ParamField>
+
+<ResponseField name="return" type="Bienes">
+  The Bienes object if found, `null` otherwise. Contains:
+  - `codigo_bien` - Good ID
+  - `descrip_bien` - Description
+  - `cantidad_bien` - Quantity
+  - `nom_provee` - Provider name
+  - `fecha_llegada` - Arrival date
+  - `codigoOrdendeCompra` - Purchase order code
+</ResponseField>
+
+```java BienesServices.java:28-30
+public Bienes buscarPorId(int cod) {
+    return objBienes.findById(cod);
+}
+```
+
+---
+
+### listarTodos
+
+Retrieves all Bienes records from the database.
+
+<ResponseField name="return" type="List<Bienes>">
+  A list containing all Bienes objects in the system. Returns an empty list if no records exist.
+</ResponseField>
+
+```java BienesServices.java:31-33
+public List<Bienes> listarTodos() {
+    return objBienes.listAll();
+}
+```
+
+---
+
+### listarBienesporCodigodeComptra
+
+Retrieves all Bienes associated with a specific purchase order (Orden de Compra).
+
+<ParamField path="cod" type="int" required>
+  The purchase order code (`codigoOrdendeCompra`) to filter by
+</ParamField>
+
+<ResponseField name="return" type="List<Bienes>">
+  A list of Bienes objects that belong to the specified purchase order. Returns an empty list if no matches found.
+</ResponseField>
+
+```java BienesServices.java:34-36
+public List<Bienes> listarBienesporCodigodeComptra(int cod) {
+    return objBienes.listarBienesporCodigodeComptra(cod);
+}
+```
+
+---
+
+## Usage Examples
+
+### Servlet Integration
+
+Example from `ServletBienes.java` showing how servlets use this service:
+
+```java ServletBienes.java:23-33
+private BienesServices servicio;
+
+public ServletBienes() {
+    super();
+    servicio = new BienesServices();
+}
+```
+
+### Registering a New Bien
+
+```java ServletBienes.java:86-98
+Bienes bean = new Bienes();
+bean.setDescrip_bien(descrip);
+bean.setCantidad_bien(Integer.parseInt(cant));
+bean.setNom_provee(nomprovee);
+bean.setFecha_llegada(Date.valueOf(fechallegada));
+bean.setCodigoOrdendeCompra(Integer.parseInt(codigocompra));
+
+int salida = servicio.registrar(bean);
+if (salida > 0) {
+    request.setAttribute("MENSAJE", "Bien registrado correctamente");
+} else {
+    request.setAttribute("MENSAJE", "La Orden de Compra y sus datos no estan registrados");
+}
+```
+
+### Updating an Existing Bien
+
+```java ServletBienes.java:112-120
+bean.setCodigo_bien(Integer.parseInt(cod));
+int salida = servicio.actualizar(bean);
+if (salida > 0) {
+    request.setAttribute("MENSAJE", "Bien actualizado correctamente");
+} else {
+    request.setAttribute("MENSAJE", "Error en la actualización");
+}
+```
+
+### Deleting a Bien
+
+```java ServletBienes.java:57-67
+String cod = request.getParameter("codigoEliminar");
+int salida = servicio.eliminarPorId(Integer.parseInt(cod));
+if (salida > 0) {
+    request.setAttribute("MENSAJE", "Bien eliminado correctamente");
+} else {
+    request.setAttribute("MENSAJE", "Error en la eliminación");
+}
+```
+
+### Listing All Bienes
+
+```java ServletBienes.java:133-138
+List<Bienes> data = servicio.listarTodos();
+request.setAttribute("listarBienes", data);
+request.getRequestDispatcher("/Bienes.jsp").forward(request, response);
+```
+
+---
+
+## Error Handling
+
+The service layer returns integer values for CUD operations (Create, Update, Delete):
+
+- **Success:** Return value `> 0` indicates the number of affected rows
+- **Failure:** Return value `<= 0` indicates operation failed
+
+### Common Error Scenarios
+
+1. **Invalid Purchase Order Code:** When registering a Bien with a non-existent `codigoOrdendeCompra`, the operation fails with return value `0`
+
+2. **Entity Not Found:** When updating or deleting a non-existent Bien, the operation returns `0`
+
+3. **Database Constraints:** Foreign key violations or other database constraints will cause operations to fail
+
+### Servlet-Level Error Handling
+
+Servlets check return values and set appropriate messages:
+
+```java
+if (salida > 0) {
+    // Success message
+    request.setAttribute("MENSAJE", "Operation successful");
+} else {
+    // Error message
+    request.setAttribute("MENSAJE", "Operation failed");
+}
+```
+
+---
+
+## Related Components
+
+### Data Access Layer
+
+- **[BienesDAO](/api/dao/bienes-dao)** - Data access interface
+- **[MySqlBienesDAO](/api/dao/mysql-bienes-dao)** - MySQL implementation
+
+### Entity Layer
+
+- **[Bienes Entity](/api/entities/bienes)** - Domain model
+
+### Related Services
+
+- **[GuiaServices](/api/services/guia-service)** - Manages purchase orders that Bienes reference
+- **[ProveedorServices](/api/services/proveedor-service)** - Manages providers associated with Bienes
+
+### Presentation Layer
+
+- **ServletBienes** - Main servlet controller at `/ServletBienes`
+- **ServletBienesJSON** - JSON API endpoint
+- **ServletBienporCompraJSON** - Filtered JSON endpoint by purchase order

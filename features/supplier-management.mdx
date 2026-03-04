@@ -1,0 +1,280 @@
+---
+title: 'Supplier Management'
+description: 'Register and manage supplier information for procurement operations'
+---
+
+## Overview
+
+The Supplier Management (Proveedor) feature enables you to maintain a complete directory of suppliers who provide goods and services to your organization. Supplier records include contact information, location details, and status tracking.
+
+<Info>
+  Supplier data is stored in the `proveedor` database table. Suppliers are referenced throughout the system when registering assets and purchase orders.
+</Info>
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Supplier Directory" icon="address-book">
+    Maintain a centralized database of all approved suppliers with contact and location information
+  </Card>
+  <Card title="Contact Management" icon="phone">
+    Store telephone numbers and district information for easy supplier communication
+  </Card>
+  <Card title="Status Tracking" icon="circle-check">
+    Track supplier status (active, inactive, etc.) to manage business relationships
+  </Card>
+  <Card title="Procurement Integration" icon="handshake">
+    Link suppliers to purchase orders and assets for complete procurement documentation
+  </Card>
+</CardGroup>
+
+## Registering a New Supplier
+
+<Steps>
+  <Step title="Access Supplier Management">
+    Navigate to the Proveedor page from the main menu. You'll see a table displaying all registered suppliers.
+  </Step>
+  
+  <Step title="Open Registration Form">
+    Click the **Nuevo Proveedor** button to open the supplier registration modal.
+  </Step>
+  
+  <Step title="Enter Supplier Details">
+    Complete all required fields:
+    
+    <ParamField path="nombreProveedor" type="string" required>
+      **Supplier Name**: Official business name of the supplier
+      - Must be 4-20 characters
+      - Only letters allowed (including Spanish characters)
+      - Example: "Comercial SAC", "Distribuidora Lima"
+    </ParamField>
+    
+    <ParamField path="distritoProveedor" type="string" required>
+      **District**: Geographic district where the supplier is located
+      - Must be 4-20 characters
+      - Only letters allowed
+      - Example: "San Isidro", "Miraflores"
+    </ParamField>
+    
+    <ParamField path="telefonoProveedor" type="string" required>
+      **Telephone**: Primary contact phone number
+      - Can be any text format
+      - Example: "01-2345678", "987654321"
+    </ParamField>
+    
+    <ParamField path="estadoProveedor" type="string" required>
+      **Status**: Current operational status of the supplier
+      - Must be 4-20 characters
+      - Only letters allowed
+      - Common values: "Activo", "Inactivo", "Suspendido"
+    </ParamField>
+  </Step>
+  
+  <Step title="Submit the Form">
+    Click **Grabar** to save the supplier. The system will:
+    - Validate all fields meet the requirements
+    - Insert the record into the database with an auto-generated ID
+    - Display a success confirmation message
+    - Refresh the supplier list
+  </Step>
+</Steps>
+
+## Field Reference
+
+Suppliers contain the following information:
+
+| Database Field | Display Name | Type | Description |
+|----------------|--------------|------|-------------|
+| `id_prove` | ID / Código | Integer | Auto-generated unique identifier |
+| `nom_prove` | Nombre Proveedor | String | Supplier business name (4-20 characters) |
+| `dist_prove` | Distrito | String | District/location (4-20 characters) |
+| `telf_prove` | Teléfono | String | Contact telephone number |
+| `estado_prove` | Estado | String | Supplier status (4-20 characters) |
+
+## Editing a Supplier
+
+<Steps>
+  <Step title="Locate the Supplier">
+    Use the DataTable search functionality to find the supplier you want to update. You can search by any field.
+  </Step>
+  
+  <Step title="Open Edit Modal">
+    Click the green **Editar** button on the supplier's row. The system fetches current data via AJAX call to `ServletProveedorJSON`.
+  </Step>
+  
+  <Step title="Modify Information">
+    Update any fields as needed. All fields remain validated according to the same rules:
+    - Name, district, and status must be alphabetic (4-20 characters)
+    - Telephone can be updated to any value
+  </Step>
+  
+  <Step title="Save Changes">
+    Click **Grabar** to persist your changes. The system executes:
+    ```sql
+    UPDATE proveedor 
+    SET nom_prove=?, dist_prove=?, telf_prove=?, estado_prove=? 
+    WHERE id_prove=?
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  When editing, the ID field is read-only and displays the supplier's unique identifier. This ensures referential integrity with related records.
+</Note>
+
+## Deleting a Supplier
+
+<Warning>
+  **Important**: Before deleting a supplier, ensure they are not referenced in any:
+  - Active purchase orders
+  - Registered assets
+  - SUNARP registrations
+  
+  Deletion is permanent and cannot be undone.
+</Warning>
+
+<Steps>
+  <Step title="Select Supplier">
+    Find the supplier record in the table.
+  </Step>
+  
+  <Step title="Initiate Deletion">
+    Click the red **Eliminar** button on the supplier's row.
+  </Step>
+  
+  <Step title="Confirm Action">
+    A confirmation modal appears asking "¿Desea eliminar?". 
+    - Click **SI** to proceed with deletion
+    - Click **NO** to cancel
+  </Step>
+  
+  <Step title="Deletion Complete">
+    The system removes the record:
+    ```sql
+    DELETE FROM proveedor WHERE id_prove=?
+    ```
+    The supplier list automatically refreshes.
+  </Step>
+</Steps>
+
+## Viewing Supplier Information
+
+The supplier list displays all registered suppliers in an interactive DataTable with the following features:
+
+- **Searching**: Type in the search box to filter suppliers by any field
+- **Sorting**: Click column headers to sort alphabetically or numerically
+- **Pagination**: Navigate through multiple pages of suppliers
+- **Records per Page**: Choose how many suppliers to display (10, 25, 50, 100)
+
+## Validation Rules
+
+<Accordion title="Field Validation Details">
+  ### Name Validation
+  - **Pattern**: `^[a-zA-ZñÑ\s\áéíóúÁÉÍÓÚ]{4,20}$`
+  - **Minimum Length**: 4 characters
+  - **Maximum Length**: 20 characters
+  - **Allowed Characters**: Letters (uppercase and lowercase), Spanish characters (ñ, á, é, í, ó, ú), spaces
+  - **Error Message**: "Solo letras MIN:4 - MAX:20"
+  
+  ### District Validation
+  - **Pattern**: `^[a-zA-ZñÑ\s\áéíóúÁÉÍÓÚ]{4,20}$`
+  - **Minimum Length**: 4 characters (error message says 3, but regex enforces 4)
+  - **Maximum Length**: 20 characters
+  - **Allowed Characters**: Letters and Spanish characters, spaces
+  - **Error Message**: "Solo letras MIN:3 - MAX:20"
+  
+  ### Status Validation
+  - **Pattern**: `^[a-zA-ZñÑ\s\áéíóúÁÉÍÓÚ]{4,20}$`
+  - **Minimum Length**: 4 characters (error message says 3, but regex enforces 4)
+  - **Maximum Length**: 20 characters
+  - **Allowed Characters**: Letters and Spanish characters, spaces
+  - **Error Message**: "Solo letras MIN:3 - MAX:20"
+  
+  ### Telephone
+  - No specific validation pattern
+  - Can accept any text format
+  - Required field (cannot be empty)
+</Accordion>
+
+## Business Rules
+
+<Accordion title="Supplier Status Management">
+  While the system doesn't enforce specific status values, common practices include:
+  
+  - **"Activo"**: Supplier is currently active and can be used for new orders
+  - **"Inactivo"**: Supplier is temporarily inactive
+  - **"Suspendido"**: Supplier has been suspended from business
+  - **"Aprobado"**: Supplier has been approved for procurement
+  
+  The status field is free-text, allowing your organization to define status values that match your business processes.
+</Accordion>
+
+<Accordion title="Data Integrity">
+  - Each supplier is assigned a unique auto-increment ID (`id_prove`)
+  - The ID is used as a foreign key reference in other tables
+  - Supplier names are referenced by name in asset and purchase order records
+  - All fields are mandatory during creation and update
+</Accordion>
+
+## Database Operations
+
+The system performs the following SQL operations:
+
+```sql
+-- Create new supplier
+INSERT INTO proveedor VALUES(null, ?, ?, ?, ?)
+
+-- Update existing supplier
+UPDATE proveedor 
+SET nom_prove=?, dist_prove=?, telf_prove=?, estado_prove=? 
+WHERE id_prove=?
+
+-- Delete supplier
+DELETE FROM proveedor WHERE id_prove=?
+
+-- Find supplier by ID
+SELECT * FROM proveedor WHERE id_prove=?
+
+-- List all suppliers
+SELECT * FROM proveedor
+```
+
+## Related Features
+
+<CardGroup cols={3}>
+  <Card title="Asset Management" href="/features/asset-management">
+    Link suppliers to assets they provide
+  </Card>
+  <Card title="Purchase Orders" href="/features/purchase-orders">
+    Create purchase orders with supplier information
+  </Card>
+  <Card title="SUNARP Registration" href="/features/sunarp-registration">
+    Register assets with supplier details
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Note>
+  ### Recommended Workflow
+  1. **Register supplier** before creating purchase orders or assets
+  2. **Verify contact information** is current and accurate
+  3. **Update status** regularly to reflect current business relationships
+  4. **Use consistent naming** for districts and status values
+  5. **Review inactive suppliers** periodically for potential reactivation or removal
+</Note>
+
+## Technical Implementation
+
+<Info>
+  **For Developers**: Suppliers are managed through:
+  - Entity: `com.bienes.entidad.Proveedor`
+  - DAO Interface: `com.bienes.interfaces.ProveedorDAO`
+  - DAO Implementation: `com.bienes.dao.MySqlProveedorDAO`
+  - Servlet: `com.bienes.controlador.ServletProveedor`
+  - Service: `com.bienes.services.ProveedorServices`
+  - JSP View: `/proveedor.jsp`
+  - JSON API: `ServletProveedorJSON` (returns supplier data for AJAX operations)
+  
+  The implementation uses Bootstrap 5 for UI, DataTables for table functionality, and Bootstrap Validator for client-side validation.
+</Info>

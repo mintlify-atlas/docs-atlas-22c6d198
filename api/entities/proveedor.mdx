@@ -1,0 +1,160 @@
+---
+title: "Proveedor"
+description: "Entity class representing suppliers in the system"
+---
+
+## Overview
+
+The `Proveedor` entity represents suppliers who provide goods and services to the organization. It stores supplier identification, contact information, location, and status.
+
+**Package:** `com.bienes.entidad`
+
+**Imports:** None
+
+## Fields
+
+<ParamField path="id_prove" type="int">
+  Unique identifier for the supplier
+</ParamField>
+
+<ParamField path="nom_prove" type="String">
+  Name of the supplier
+</ParamField>
+
+<ParamField path="dist_prove" type="String">
+  District/location of the supplier
+</ParamField>
+
+<ParamField path="telf_prove" type="String">
+  Telephone number of the supplier
+</ParamField>
+
+<ParamField path="estado_prove" type="String">
+  Current status of the supplier (e.g., active, inactive)
+</ParamField>
+
+## Methods
+
+All fields have standard getter and setter methods following JavaBean conventions:
+
+- `getId_prove()` / `setId_prove(int)`
+- `getNom_prove()` / `setNom_prove(String)`
+- `getDist_prove()` / `setDist_prove(String)`
+- `getTelf_prove()` / `setTelf_prove(String)`
+- `getEstado_prove()` / `setEstado_prove(String)`
+
+## Entity Class
+
+```java
+package com.bienes.entidad;
+
+public class Proveedor {
+
+    public int id_prove;
+    public String nom_prove;
+    public String dist_prove;
+    public String telf_prove;
+    public String estado_prove;
+    
+    public int getId_prove() {
+        return id_prove;
+    }
+    public void setId_prove(int id_prove) {
+        this.id_prove = id_prove;
+    }
+    public String getNom_prove() {
+        return nom_prove;
+    }
+    public void setNom_prove(String nom_prove) {
+        this.nom_prove = nom_prove;
+    }
+    public String getDist_prove() {
+        return dist_prove;
+    }
+    public void setDist_prove(String dist_prove) {
+        this.dist_prove = dist_prove;
+    }
+    public String getTelf_prove() {
+        return telf_prove;
+    }
+    public void setTelf_prove(String telf_prove) {
+        this.telf_prove = telf_prove;
+    }
+    public String getEstado_prove() {
+        return estado_prove;
+    }
+    public void setEstado_prove(String estado_prove) {
+        this.estado_prove = estado_prove;
+    }
+}
+```
+
+## Usage Example
+
+### Creating a Proveedor Instance
+
+```java
+import com.bienes.entidad.Proveedor;
+
+// Create a new supplier
+Proveedor proveedor = new Proveedor();
+proveedor.setNom_prove("Tech Supplies S.A.");
+proveedor.setDist_prove("San Isidro");
+proveedor.setTelf_prove("01-2345678");
+proveedor.setEstado_prove("Activo");
+```
+
+### Using with DAO Layer
+
+```java
+import com.bienes.interfaces.ProveedorDAO;
+import com.bienes.dao.MySqlProveedorDAO;
+
+// Initialize DAO
+ProveedorDAO dao = new MySqlProveedorDAO();
+
+// Save a new supplier
+int result = dao.save(proveedor);
+
+// Find supplier by ID
+Proveedor foundProveedor = dao.findById(1);
+
+// Update supplier information
+foundProveedor.setTelf_prove("01-9876543");
+dao.update(foundProveedor);
+
+// List all suppliers
+List<Proveedor> allProveedores = dao.listAll();
+
+// Delete a supplier
+dao.delete(1);
+```
+
+## Related Entities
+
+<CardGroup cols={2}>
+  <Card title="Bienes" icon="box" href="/api/entities/bienes">
+    Suppliers provide goods tracked in the Bienes entity via the `nom_provee` field
+  </Card>
+  <Card title="GuiayOrdendeCompra" icon="file-invoice" href="/api/entities/guia">
+    Suppliers are referenced in purchase orders via the `nom_provee` field
+  </Card>
+  <Card title="InscripcionSUNARP" icon="file-contract" href="/api/entities/sunarp">
+    Suppliers are referenced in SUNARP registrations via the `nom_provee` field
+  </Card>
+  <Card title="ActaConformidad" icon="file-check">
+    Suppliers are referenced in conformity certificates via the `nom_provee` field
+  </Card>
+</CardGroup>
+
+## Database Table
+
+The entity maps to the `proveedor` table with the following structure:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id_prove | INT | Primary key (auto-increment) |
+| nom_prove | VARCHAR | Supplier name |
+| dist_prove | VARCHAR | District/location |
+| telf_prove | VARCHAR | Telephone number |
+| estado_prove | VARCHAR | Status (active/inactive) |

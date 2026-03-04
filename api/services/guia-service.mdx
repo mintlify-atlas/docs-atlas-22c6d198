@@ -1,0 +1,311 @@
+---
+title: 'GuiaServices'
+description: 'Service layer for managing Guia y Orden de Compra (purchase order guide) operations'
+---
+
+## Overview
+
+**Package:** `com.bienes.services`
+
+**Full Class Name:** `com.bienes.services.GuiaServices`
+
+The `GuiaServices` class provides business logic for managing purchase order guides (Guía y Orden de Compra) in the system. This service handles the lifecycle of purchase orders that are referenced by Bienes records.
+
+### Dependencies
+
+- **DAO Factory:** `DAOFactory.getDAOFactory(1)` - MySQL implementation
+- **DAO Interface:** `GuiaDAO`
+- **Entity:** `com.bienes.entidad.GuiayOrdendeCompra`
+
+```java GuiaServices.java:11-13
+private DAOFactory fabrica = DAOFactory.getDAOFactory(1);
+private GuiaDAO objGuia = fabrica.getGuiaDAO();
+```
+
+---
+
+## Methods
+
+### listarTodos
+
+Retrieves all GuiayOrdendeCompra records from the database.
+
+<ResponseField name="return" type="List<GuiayOrdendeCompra>">
+  A list containing all purchase order guide objects in the system. Returns an empty list if no records exist.
+</ResponseField>
+
+```java GuiaServices.java:15-17
+public List<GuiayOrdendeCompra> listarTodos() {
+    return objGuia.listAll();
+}
+```
+
+---
+
+### registrar
+
+Registers a new purchase order guide in the system.
+
+<ParamField path="bean" type="GuiayOrdendeCompra" required>
+  The GuiayOrdendeCompra entity object containing purchase order information:
+  - `nom_provee` - Provider name
+  - `fecha_compra` - Purchase date
+  - `descripcionguiacompra` - Description of goods
+  - `cantidadguiacompra` - Quantity
+  - `precioguiacompra` - Price
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected:
+  - `> 0` - Registration successful
+  - `0` or `< 0` - Registration failed
+</ResponseField>
+
+```java GuiaServices.java:19-21
+public int registrar(GuiayOrdendeCompra bean) {
+    return objGuia.save(bean);
+}
+```
+
+---
+
+### actualizar
+
+Updates an existing purchase order guide record.
+
+<ParamField path="bean" type="GuiayOrdendeCompra" required>
+  The GuiayOrdendeCompra entity object with updated information. Must include:
+  - `codigoguiacompra` - ID of the purchase order to update
+  - All other fields to be updated
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected:
+  - `> 0` - Update successful
+  - `0` or `< 0` - Update failed
+</ResponseField>
+
+```java GuiaServices.java:22-24
+public int actualizar(GuiayOrdendeCompra bean) {
+    return objGuia.update(bean);
+}
+```
+
+---
+
+### eliminarPorId
+
+Deletes a purchase order guide by its ID.
+
+<ParamField path="cod" type="int" required>
+  The unique identifier (`codigoguiacompra`) of the purchase order guide to delete
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected:
+  - `> 0` - Deletion successful
+  - `0` or `< 0` - Deletion failed
+</ResponseField>
+
+```java GuiaServices.java:25-27
+public int eliminarPorId(int cod) {
+    return objGuia.delete(cod);
+}
+```
+
+---
+
+### buscarPorId
+
+Retrieves a purchase order guide by its ID.
+
+<ParamField path="cod" type="int" required>
+  The unique identifier (`codigoguiacompra`) of the purchase order guide to retrieve
+</ParamField>
+
+<ResponseField name="return" type="GuiayOrdendeCompra">
+  The GuiayOrdendeCompra object if found, `null` otherwise. Contains:
+  - `codigoguiacompra` - Purchase order ID
+  - `nom_provee` - Provider name
+  - `fecha_compra` - Purchase date
+  - `descripcionguiacompra` - Description
+  - `cantidadguiacompra` - Quantity
+  - `precioguiacompra` - Price
+</ResponseField>
+
+```java GuiaServices.java:28-30
+public GuiayOrdendeCompra buscarPorId(int cod) {
+    return objGuia.findById(cod);
+}
+```
+
+---
+
+## Usage Examples
+
+### Service Initialization
+
+Typical servlet initialization pattern:
+
+```java
+private GuiaServices servicio;
+
+public ServletGuia() {
+    super();
+    servicio = new GuiaServices();
+}
+```
+
+### Registering a New Purchase Order
+
+```java
+GuiayOrdendeCompra bean = new GuiayOrdendeCompra();
+bean.setNom_provee("Provider Name");
+bean.setFecha_compra(Date.valueOf("2024-03-15"));
+bean.setDescripcionguiacompra("Office supplies");
+bean.setCantidadguiacompra("50");
+bean.setPrecioguiacompra(1500.00);
+
+int salida = servicio.registrar(bean);
+if (salida > 0) {
+    // Success - purchase order created
+    System.out.println("Purchase order registered successfully");
+} else {
+    // Error handling
+    System.out.println("Failed to register purchase order");
+}
+```
+
+### Updating a Purchase Order
+
+```java
+GuiayOrdendeCompra bean = servicio.buscarPorId(orderCode);
+if (bean != null) {
+    bean.setPrecioguiacompra(1750.00);
+    bean.setCantidadguiacompra("60");
+    
+    int salida = servicio.actualizar(bean);
+    if (salida > 0) {
+        System.out.println("Purchase order updated");
+    }
+}
+```
+
+### Retrieving Purchase Order for Validation
+
+Before registering Bienes, validate the purchase order exists:
+
+```java
+int codigoCompra = Integer.parseInt(request.getParameter("codigocompra"));
+GuiayOrdendeCompra orden = guiaService.buscarPorId(codigoCompra);
+
+if (orden != null) {
+    // Valid purchase order - proceed with Bienes registration
+    Bienes bien = new Bienes();
+    bien.setCodigoOrdendeCompra(codigoCompra);
+    // ... set other fields
+    bienesService.registrar(bien);
+} else {
+    // Invalid purchase order
+    request.setAttribute("MENSAJE", "La Orden de Compra no existe");
+}
+```
+
+### Listing All Purchase Orders
+
+```java
+List<GuiayOrdendeCompra> data = servicio.listarTodos();
+request.setAttribute("listarGuias", data);
+request.getRequestDispatcher("/guia.jsp").forward(request, response);
+```
+
+---
+
+## Error Handling
+
+The service layer returns integer values for CUD operations:
+
+- **Success:** Return value `> 0` indicates the number of affected rows
+- **Failure:** Return value `<= 0` indicates operation failed
+
+### Common Error Scenarios
+
+1. **Invalid Provider:** Registering a purchase order with a non-existent provider name may cause issues
+
+2. **Referenced by Bienes:** Cannot delete a purchase order that is referenced by existing Bienes records (foreign key constraint)
+
+3. **Invalid Data Format:**
+   - `cantidadguiacompra` is stored as String but should contain numeric values
+   - `precioguiacompra` must be a valid Double
+   - `fecha_compra` must be a valid SQL Date
+
+4. **Entity Not Found:** Updating or deleting a non-existent purchase order returns `0`
+
+### Validation Best Practices
+
+```java
+// Before deleting, check for dependencies
+GuiayOrdendeCompra orden = servicio.buscarPorId(cod);
+if (orden != null) {
+    // Check if Bienes reference this order
+    List<Bienes> bienes = bienesService.listarBienesporCodigodeComptra(cod);
+    
+    if (bienes.isEmpty()) {
+        // Safe to delete
+        int result = servicio.eliminarPorId(cod);
+    } else {
+        // Cannot delete - has dependencies
+        System.out.println("Cannot delete: Purchase order has associated goods");
+    }
+}
+```
+
+---
+
+## Related Components
+
+### Data Access Layer
+
+- **[GuiaDAO](/api/dao/guia-dao)** - Data access interface
+- **[MySqlGuiaDAO](/api/dao/mysql-guia-dao)** - MySQL implementation
+
+### Entity Layer
+
+- **[GuiayOrdendeCompra Entity](/api/entities/guia-orden-compra)** - Domain model
+
+### Related Services
+
+- **[BienesServices](/api/services/bienes-service)** - Manages goods that reference purchase orders
+  - Method: `listarBienesporCodigodeComptra(int cod)` - Lists all goods for a purchase order
+- **[ProveedorServices](/api/services/proveedor-service)** - Manages providers referenced in purchase orders
+
+### Presentation Layer
+
+- **ServletGuia** - Main servlet controller at `/ServletGuia`
+- **ServletGuiaJSON** - JSON API endpoint
+
+---
+
+## Business Rules
+
+### Purchase Order Lifecycle
+
+1. **Creation:** Purchase order is created with provider and item details
+2. **Good Association:** Bienes records reference the purchase order code
+3. **Validation:** System validates purchase order existence before creating Bienes
+4. **Deletion Constraint:** Cannot delete purchase orders with associated goods
+
+### Data Relationships
+
+```
+GuiayOrdendeCompra (1) ← (N) Bienes
+       ↓
+   nom_provee references Proveedor
+```
+
+### Field Considerations
+
+- **nom_provee:** Should match an existing provider name in the Proveedor table
+- **cantidadguiacompra:** Stored as String for flexibility but typically contains numeric quantity
+- **precioguiacompra:** Total price for the purchase order
+- **fecha_compra:** Date when the purchase order was created

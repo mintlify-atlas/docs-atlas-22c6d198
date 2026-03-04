@@ -1,0 +1,166 @@
+---
+title: "Bienes"
+description: "Entity class representing goods/assets in the system"
+---
+
+## Overview
+
+The `Bienes` entity represents goods or assets that are tracked in the system. It contains information about the item description, quantity, supplier, arrival date, and its associated purchase order.
+
+**Package:** `com.bienes.entidad`
+
+**Imports:**
+- `java.sql.Date`
+
+## Fields
+
+<ParamField path="codigo_bien" type="int">
+  Unique identifier for the asset/good
+</ParamField>
+
+<ParamField path="descrip_bien" type="String">
+  Description of the asset/good
+</ParamField>
+
+<ParamField path="cantidad_bien" type="int">
+  Quantity of the asset/good
+</ParamField>
+
+<ParamField path="nom_provee" type="String">
+  Name of the supplier providing this asset
+</ParamField>
+
+<ParamField path="fecha_llegada" type="Date">
+  Arrival date of the asset (SQL Date type)
+</ParamField>
+
+<ParamField path="codigoOrdendeCompra" type="int">
+  Reference code to the associated purchase order (GuiayOrdendeCompra)
+</ParamField>
+
+## Methods
+
+All fields have standard getter and setter methods following JavaBean conventions:
+
+- `getCodigo_bien()` / `setCodigo_bien(int)`
+- `getDescrip_bien()` / `setDescrip_bien(String)`
+- `getCantidad_bien()` / `setCantidad_bien(int)`
+- `getNom_provee()` / `setNom_provee(String)`
+- `getFecha_llegada()` / `setFecha_llegada(Date)`
+- `getCodigoOrdendeCompra()` / `setCodigoOrdendeCompra(int)`
+
+## Entity Class
+
+```java
+package com.bienes.entidad;
+
+import java.sql.Date;
+
+public class Bienes {
+
+    public int codigo_bien;
+    public String descrip_bien;
+    public int cantidad_bien;
+    public String nom_provee;
+    public Date fecha_llegada;
+    public int codigoOrdendeCompra;
+    
+    public int getCodigo_bien() {
+        return codigo_bien;
+    }
+    public void setCodigo_bien(int codigo_bien) {
+        this.codigo_bien = codigo_bien;
+    }
+    public String getDescrip_bien() {
+        return descrip_bien;
+    }
+    public void setDescrip_bien(String descrip_bien) {
+        this.descrip_bien = descrip_bien;
+    }
+    public int getCantidad_bien() {
+        return cantidad_bien;
+    }
+    public void setCantidad_bien(int cantidad_bien) {
+        this.cantidad_bien = cantidad_bien;
+    }
+    public String getNom_provee() {
+        return nom_provee;
+    }
+    public void setNom_provee(String nom_provee) {
+        this.nom_provee = nom_provee;
+    }
+    public Date getFecha_llegada() {
+        return fecha_llegada;
+    }
+    public void setFecha_llegada(Date fecha_llegada) {
+        this.fecha_llegada = fecha_llegada;
+    }
+    public int getCodigoOrdendeCompra() {
+        return codigoOrdendeCompra;
+    }
+    public void setCodigoOrdendeCompra(int codigoOrdendeCompra) {
+        this.codigoOrdendeCompra = codigoOrdendeCompra;
+    }
+}
+```
+
+## Usage Example
+
+### Creating a Bienes Instance
+
+```java
+import com.bienes.entidad.Bienes;
+import java.sql.Date;
+
+// Create a new Bienes instance
+Bienes bien = new Bienes();
+bien.setDescrip_bien("Laptop Dell Latitude 5420");
+bien.setCantidad_bien(10);
+bien.setNom_provee("Tech Supplies S.A.");
+bien.setFecha_llegada(Date.valueOf("2026-03-15"));
+bien.setCodigoOrdendeCompra(12345);
+```
+
+### Using with DAO Layer
+
+```java
+import com.bienes.interfaces.BienesDAO;
+import com.bienes.dao.MySqlBienesDAO;
+
+// Save a new asset
+BienesDAO dao = new MySqlBienesDAO();
+int result = dao.save(bien);
+
+// Find by ID
+Bienes foundBien = dao.findById(1);
+
+// List all assets
+List<Bienes> allBienes = dao.listAll();
+
+// List assets by purchase order
+List<Bienes> bienesPorCompra = dao.listarBienesporCodigodeComptra(12345);
+```
+
+## Related Entities
+
+<CardGroup cols={2}>
+  <Card title="GuiayOrdendeCompra" icon="file-invoice" href="/api/entities/guia">
+    Referenced by `codigoOrdendeCompra` field - the purchase order associated with this asset
+  </Card>
+  <Card title="Proveedor" icon="truck" href="/api/entities/proveedor">
+    Referenced by `nom_provee` field - the supplier providing this asset
+  </Card>
+</CardGroup>
+
+## Database Table
+
+The entity maps to the `bienes` table with the following structure:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| codigo_bien | INT | Primary key (auto-increment) |
+| descrip_bien | VARCHAR | Asset description |
+| cantidad_bien | INT | Quantity |
+| nom_provee | VARCHAR | Supplier name |
+| fecha_llegada | DATE | Arrival date |
+| codigoOrdendeCompra | INT | Foreign key to purchase order |

@@ -1,0 +1,537 @@
+---
+title: 'OperadorDAO'
+description: 'Data access layer for managing operator/personnel records with status tracking'
+---
+
+## Overview
+
+The `OperadorDAO` interface and its MySQL implementation provide CRUD operations for managing **operadores** (operators/personnel) in the system. Operators are staff members or personnel involved in operations, logistics, or asset management.
+
+### Interface
+
+**Package**: `com.bienes.interfaces`
+
+```java OperadorDAO.java
+public interface OperadorDAO {
+    public int saveOpe(Operador bean);
+    public int updateOpe(Operador bean);
+    public int deleteOpe(int codi);
+    public Operador findByIdOpe(int codi);
+    public List<Operador> listAll();
+}
+```
+
+### Implementation
+
+**Package**: `com.bienes.dao`  
+**Class**: `MySqlOperadorDAO`  
+**Location**: `com/bienes/dao/MySqlOperadorDAO.java`
+
+## Database Schema
+
+### Table: `operador`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id_ope` | INT (PK, AUTO_INCREMENT) | Unique operator identifier |
+| `nom_ope` | VARCHAR | Operator name |
+| `dist_ope` | VARCHAR | District/location |
+| `cel_ope` | INT | Cell phone number |
+| `estado_ope` | VARCHAR | Status (active/inactive) |
+
+### Entity Mapping
+
+```java Operador.java
+public class Operador {
+    public int id_ope;
+    public String nom_ope;
+    public String dist_ope;
+    public int cel_ope;
+    public String estado_ope;
+    
+    // Getters and setters...
+}
+```
+
+## Method Reference
+
+### saveOpe()
+
+Inserts a new operator record into the database.
+
+```java
+public int saveOpe(Operador bean)
+```
+
+<ParamField path="bean" type="Operador" required>
+  Operator object containing:
+  - `nom_ope`: Operator name
+  - `dist_ope`: District or location
+  - `cel_ope`: Cell phone number (integer)
+  - `estado_ope`: Status (e.g., "Activo", "Inactivo")
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected (1 on success, -1 on error)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+INSERT INTO operador 
+VALUES (null, ?, ?, ?, ?)
+```
+
+**Parameters**:
+1. `nom_ope` (String)
+2. `dist_ope` (String)
+3. `cel_ope` (int)
+4. `estado_ope` (String)
+
+#### Implementation
+
+```java MySqlOperadorDAO.java:18-48
+@Override
+public int saveOpe(Operador bean) {
+    int salida = -1;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "insert into operador values(null,?,?,?,?)";
+        pstm = cn.prepareStatement(sql);
+        pstm.setString(1, bean.getNom_ope());
+        pstm.setString(2, bean.getDist_ope());
+        pstm.setInt(3, bean.getCel_ope());
+        pstm.setString(4, bean.getEstado_ope());
+        salida = pstm.executeUpdate();
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return salida;
+}
+```
+
+---
+
+### updateOpe()
+
+Updates an existing operator record.
+
+```java
+public int updateOpe(Operador bean)
+```
+
+<ParamField path="bean" type="Operador" required>
+  Operator object with updated values, must include `id_ope` for identification
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected (1 on success, -1 on error)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+UPDATE operador 
+SET nom_ope=?, 
+    dist_ope=?, 
+    cel_ope=?, 
+    estado_ope=? 
+WHERE id_ope=?
+```
+
+**Parameters**:
+1. `nom_ope` (String)
+2. `dist_ope` (String)
+3. `cel_ope` (int)
+4. `estado_ope` (String)
+5. `id_ope` (int) - WHERE condition
+
+#### Implementation
+
+```java MySqlOperadorDAO.java:52-84
+@Override
+public int updateOpe(Operador bean) {
+    int salida = -1;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "update operador set nom_ope=?, dist_ope=?, cel_ope=?, estado_ope=? where id_ope=?";
+        pstm = cn.prepareStatement(sql);
+        pstm.setString(1, bean.getNom_ope());
+        pstm.setString(2, bean.getDist_ope());
+        pstm.setInt(3, bean.getCel_ope());
+        pstm.setString(4, bean.getEstado_ope());
+        pstm.setInt(5, bean.getId_ope());
+        salida = pstm.executeUpdate();
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return salida;
+}
+```
+
+---
+
+### deleteOpe()
+
+Deletes an operator record by its ID.
+
+```java
+public int deleteOpe(int codi)
+```
+
+<ParamField path="codi" type="int" required>
+  Operator ID (id_ope) to delete
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected (1 on success, -1 on error)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+DELETE FROM operador WHERE id_ope=?
+```
+
+<Warning>
+Deleting operators permanently removes their records. Consider implementing soft deletes (status = "Inactivo") for audit trail purposes.
+</Warning>
+
+#### Implementation
+
+```java MySqlOperadorDAO.java:87-114
+@Override
+public int deleteOpe(int codi) {
+    int salida = -1;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "delete from operador where id_ope=?";
+        pstm = cn.prepareStatement(sql);
+        pstm.setInt(1, codi);
+        salida = pstm.executeUpdate();
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return salida;
+}
+```
+
+---
+
+### findByIdOpe()
+
+Retrieves a single operator by their unique identifier.
+
+```java
+public Operador findByIdOpe(int codi)
+```
+
+<ParamField path="codi" type="int" required>
+  Operator ID (id_ope) to retrieve
+</ParamField>
+
+<ResponseField name="return" type="Operador">
+  Operator object if found, `null` otherwise
+</ResponseField>
+
+#### SQL Query
+
+```sql
+SELECT * FROM operador WHERE id_ope=?
+```
+
+#### Implementation
+
+```java MySqlOperadorDAO.java:117-159
+@Override
+public Operador findByIdOpe(int codi) {
+    Operador bean = null;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    ResultSet rs = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "select * from operador where id_ope=?";
+        pstm = cn.prepareStatement(sql);
+        pstm.setInt(1, codi);
+        rs = pstm.executeQuery();
+        if(rs.next()) {
+            bean = new Operador();
+            bean.setId_ope(rs.getInt(1));
+            bean.setNom_ope(rs.getString(2));
+            bean.setDist_ope(rs.getString(3));
+            bean.setCel_ope(rs.getInt(4));
+            bean.setEstado_ope(rs.getString(5));
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(rs != null) rs.close();
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return bean;
+}
+```
+
+---
+
+### listAll()
+
+Retrieves all operator records from the database.
+
+```java
+public List<Operador> listAll()
+```
+
+<ResponseField name="return" type="List<Operador>">
+  List of all operator records (empty list if none found)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+SELECT * FROM operador
+```
+
+#### Implementation
+
+```java MySqlOperadorDAO.java:162-208
+@Override
+public List<Operador> listAll() {
+    List<Operador> lista = new ArrayList<Operador>();
+    Operador bean = null;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    ResultSet rs = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "select * from operador";
+        pstm = cn.prepareStatement(sql);
+        rs = pstm.executeQuery();
+        while(rs.next()) {
+            bean = new Operador();
+            bean.setId_ope(rs.getInt(1));
+            bean.setNom_ope(rs.getString(2));
+            bean.setDist_ope(rs.getString(3));
+            bean.setCel_ope(rs.getInt(4));
+            bean.setEstado_ope(rs.getString(5));
+            lista.add(bean);
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(rs != null) rs.close();
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return lista;
+}
+```
+
+## Usage Examples
+
+### Creating a New Operator
+
+```java
+// Obtain DAO instance
+DAOFactory factory = DAOFactory.getDAOFactory(DAOFactory.MYSQL);
+OperadorDAO dao = factory.getOperadorDAO();
+
+// Create operator object
+Operador operador = new Operador();
+operador.setNom_ope("Juan Carlos Pérez");
+operador.setDist_ope("San Isidro");
+operador.setCel_ope(987654321);
+operador.setEstado_ope("Activo");
+
+// Save to database
+int result = dao.saveOpe(operador);
+if(result > 0) {
+    System.out.println("Operator created successfully");
+}
+```
+
+### Listing Active Operators
+
+```java
+OperadorDAO dao = factory.getOperadorDAO();
+List<Operador> operadores = dao.listAll();
+
+System.out.println("Active Operators:");
+for(Operador op : operadores) {
+    if("Activo".equals(op.getEstado_ope())) {
+        System.out.println(op.getNom_ope() + " - " + op.getDist_ope());
+        System.out.println("Contact: " + op.getCel_ope());
+        System.out.println("---");
+    }
+}
+```
+
+### Updating Operator Contact
+
+```java
+OperadorDAO dao = factory.getOperadorDAO();
+Operador operador = dao.findByIdOpe(25);
+
+if(operador != null) {
+    operador.setCel_ope(999888777);
+    operador.setDist_ope("Miraflores");
+    int result = dao.updateOpe(operador);
+    if(result > 0) {
+        System.out.println("Operator contact updated");
+    }
+}
+```
+
+### Soft Delete (Deactivate Operator)
+
+```java
+OperadorDAO dao = factory.getOperadorDAO();
+Operador operador = dao.findByIdOpe(30);
+
+if(operador != null) {
+    operador.setEstado_ope("Inactivo");
+    int result = dao.updateOpe(operador);
+    if(result > 0) {
+        System.out.println("Operator deactivated successfully");
+    }
+}
+```
+
+## Data Considerations
+
+### Phone Number Storage
+
+<Warning>
+The `cel_ope` field uses `INT` type, which has limitations:
+- Maximum value: 2,147,483,647
+- Cannot store international format (+51)
+- Consider using VARCHAR for flexibility
+</Warning>
+
+Example validation:
+
+```java
+if(operador.getCel_ope() < 900000000 || operador.getCel_ope() > 999999999) {
+    System.err.println("Invalid Peruvian cell phone number");
+}
+```
+
+### Status Values
+
+Common status values used in `estado_ope`:
+
+| Status | Description |
+|--------|-------------|
+| `Activo` | Active operator, currently working |
+| `Inactivo` | Inactive/terminated |
+| `Vacaciones` | On vacation |
+| `Licencia` | On leave |
+| `Suspendido` | Temporarily suspended |
+
+<Note>
+Status values are stored as strings. Consider using an enum or lookup table for better data integrity and validation.
+</Note>
+
+## Business Context
+
+### Operator Roles
+
+Operators in the system may have different responsibilities:
+
+<CardGroup cols={2}>
+  <Card title="Warehouse Operators" icon="warehouse">
+    Manage inventory and asset storage
+  </Card>
+  <Card title="Logistics Operators" icon="truck">
+    Handle shipments and deliveries
+  </Card>
+  <Card title="Registration Operators" icon="clipboard">
+    Process SUNARP and documentation
+  </Card>
+  <Card title="Quality Control" icon="check-circle">
+    Inspect and verify asset conditions
+  </Card>
+</CardGroup>
+
+## Related DAOs
+
+<Card title="ProveedorDAO" icon="truck" href="/api/dao/proveedor-dao">
+  Similar pattern for managing supplier/vendor information
+</Card>
+
+## Best Practices
+
+### Input Validation
+
+```java
+public boolean validateOperador(Operador op) {
+    if(op.getNom_ope() == null || op.getNom_ope().trim().isEmpty()) {
+        return false;
+    }
+    if(op.getCel_ope() < 900000000 || op.getCel_ope() > 999999999) {
+        return false;
+    }
+    return true;
+}
+```
+
+### Query Optimization
+
+For filtering by status, consider adding an index:
+
+```sql
+CREATE INDEX idx_operador_estado ON operador(estado_ope);
+```
+
+### Audit Trail
+
+Consider adding audit fields:
+
+```sql
+ALTER TABLE operador 
+ADD COLUMN fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN fecha_modificacion DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ADD COLUMN usuario_modificacion VARCHAR(50);
+```
+
+## See Also
+
+- [DAO Overview](/api/dao/overview) - Architecture patterns and connection management
+- [ProveedorDAO](/api/dao/proveedor-dao) - Similar entity management pattern

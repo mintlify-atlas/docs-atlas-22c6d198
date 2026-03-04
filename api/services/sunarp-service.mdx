@@ -1,0 +1,371 @@
+---
+title: 'InscripcionSUNARPServices'
+description: 'Service layer for managing SUNARP (Peruvian property registry) inscription operations'
+---
+
+## Overview
+
+**Package:** `com.bienes.services`
+
+**Full Class Name:** `com.bienes.services.InscripcionSUNARPServices`
+
+The `InscripcionSUNARPServices` class provides business logic for managing SUNARP (Superintendencia Nacional de los Registros Públicos) inscriptions in Peru. This service handles the registration and management of goods/assets that need to be registered with the national public registry.
+
+### Dependencies
+
+- **DAO Factory:** `DAOFactory.getDAOFactory(1)` - MySQL implementation
+- **DAO Interface:** `InscripcionSUNARPDAO`
+- **Entity:** `com.bienes.entidad.InscripcionSUNARP`
+
+```java InscripcionSUNARPServices.java:11-14
+private DAOFactory fabrica = DAOFactory.getDAOFactory(1);
+private InscripcionSUNARPDAO objSUNARP = fabrica.getInscripcionSUNARPDAO();
+```
+
+---
+
+## Methods
+
+### registrar
+
+Registers a new SUNARP inscription in the system.
+
+<ParamField path="bean" type="InscripcionSUNARP" required>
+  The InscripcionSUNARP entity object containing inscription information:
+  - `descrip_bien` - Description of the good/asset
+  - `cantidad_bien` - Quantity
+  - `precio_bien` - Price of the asset
+  - `nom_provee` - Provider name
+  - `fecha_llegada` - Arrival/registration date
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected:
+  - `> 0` - Registration successful
+  - `0` or `< 0` - Registration failed
+</ResponseField>
+
+```java InscripcionSUNARPServices.java:17-19
+public int registrar(InscripcionSUNARP bean) {
+    return objSUNARP.save(bean);
+}
+```
+
+---
+
+### actualizar
+
+Updates an existing SUNARP inscription record.
+
+<ParamField path="bean" type="InscripcionSUNARP" required>
+  The InscripcionSUNARP entity object with updated information. Must include:
+  - `codigo_inscri` - ID of the inscription to update
+  - All other fields to be updated
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected:
+  - `> 0` - Update successful
+  - `0` or `< 0` - Update failed
+</ResponseField>
+
+```java InscripcionSUNARPServices.java:20-22
+public int actualizar(InscripcionSUNARP bean) {
+    return objSUNARP.update(bean);
+}
+```
+
+---
+
+### eliminarPorId
+
+Deletes a SUNARP inscription by its ID.
+
+<ParamField path="cod" type="int" required>
+  The unique identifier (`codigo_inscri`) of the inscription to delete
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected:
+  - `> 0` - Deletion successful
+  - `0` or `< 0` - Deletion failed
+</ResponseField>
+
+```java InscripcionSUNARPServices.java:23-25
+public int eliminarPorId(int cod) {
+    return objSUNARP.delete(cod);
+}
+```
+
+---
+
+### buscarPorId
+
+Retrieves a SUNARP inscription by its ID.
+
+<ParamField path="cod" type="int" required>
+  The unique identifier (`codigo_inscri`) of the inscription to retrieve
+</ParamField>
+
+<ResponseField name="return" type="InscripcionSUNARP">
+  The InscripcionSUNARP object if found, `null` otherwise. Contains:
+  - `codigo_inscri` - Inscription ID
+  - `descrip_bien` - Description of the asset
+  - `cantidad_bien` - Quantity
+  - `precio_bien` - Price (double)
+  - `nom_provee` - Provider name
+  - `fecha_llegada` - Arrival/registration date
+</ResponseField>
+
+```java InscripcionSUNARPServices.java:26-28
+public InscripcionSUNARP buscarPorId(int cod) {
+    return objSUNARP.findById(cod);
+}
+```
+
+---
+
+### listarTodos
+
+Retrieves all SUNARP inscription records from the database.
+
+<ResponseField name="return" type="List<InscripcionSUNARP>">
+  A list containing all InscripcionSUNARP objects in the system. Returns an empty list if no records exist.
+</ResponseField>
+
+```java InscripcionSUNARPServices.java:29-31
+public List<InscripcionSUNARP> listarTodos() {
+    return objSUNARP.listAll();
+}
+```
+
+---
+
+## Usage Examples
+
+### Service Initialization
+
+Typical servlet initialization pattern:
+
+```java
+private InscripcionSUNARPServices servicio;
+
+public ServletSUNARP() {
+    super();
+    servicio = new InscripcionSUNARPServices();
+}
+```
+
+### Registering a New SUNARP Inscription
+
+```java
+InscripcionSUNARP bean = new InscripcionSUNARP();
+bean.setDescrip_bien("Vehiculo Toyota Camry 2023");
+bean.setCantidad_bien(1);
+bean.setPrecio_bien(85000.00);
+bean.setNom_provee("Automotriz del Peru SAC");
+bean.setFecha_llegada(Date.valueOf("2024-03-15"));
+
+int salida = servicio.registrar(bean);
+if (salida > 0) {
+    System.out.println("SUNARP inscription registered successfully");
+} else {
+    System.out.println("Failed to register SUNARP inscription");
+}
+```
+
+### Updating an Existing Inscription
+
+```java
+InscripcionSUNARP bean = servicio.buscarPorId(inscripcionCode);
+if (bean != null) {
+    // Update price and status
+    bean.setPrecio_bien(87500.00);
+    bean.setFecha_llegada(Date.valueOf("2024-03-20"));
+    
+    int salida = servicio.actualizar(bean);
+    if (salida > 0) {
+        System.out.println("Inscription updated successfully");
+    } else {
+        System.out.println("Update failed");
+    }
+}
+```
+
+### Retrieving and Displaying Inscriptions
+
+```java
+List<InscripcionSUNARP> inscripciones = servicio.listarTodos();
+
+for (InscripcionSUNARP inscripcion : inscripciones) {
+    System.out.println("ID: " + inscripcion.getCodigo_inscri());
+    System.out.println("Asset: " + inscripcion.getDescrip_bien());
+    System.out.println("Price: S/. " + inscripcion.getPrecio_bien());
+    System.out.println("Provider: " + inscripcion.getNom_provee());
+    System.out.println("---");
+}
+```
+
+### Deleting an Inscription
+
+```java
+int codigo = Integer.parseInt(request.getParameter("codigoEliminar"));
+
+// Verify inscription exists before deleting
+InscripcionSUNARP bean = servicio.buscarPorId(codigo);
+if (bean != null) {
+    int salida = servicio.eliminarPorId(codigo);
+    if (salida > 0) {
+        request.setAttribute("MENSAJE", "Inscripción eliminada correctamente");
+    } else {
+        request.setAttribute("MENSAJE", "Error al eliminar la inscripción");
+    }
+} else {
+    request.setAttribute("MENSAJE", "Inscripción no encontrada");
+}
+```
+
+### Servlet Integration Pattern
+
+```java
+protected void service(HttpServletRequest request, HttpServletResponse response) 
+        throws ServletException, IOException {
+    String accion = request.getParameter("tipo");
+    
+    switch (accion) {
+        case "LISTAR":
+            listarInscripciones(request, response);
+            break;
+        case "REGISTRAR":
+            registrarInscripcion(request, response);
+            break;
+        case "ELIMINAR":
+            eliminarInscripcion(request, response);
+            break;
+        case "BUSCAR":
+            buscarInscripcion(request, response);
+            break;
+    }
+}
+```
+
+---
+
+## Error Handling
+
+The service layer returns integer values for CUD operations:
+
+- **Success:** Return value `> 0` indicates the number of affected rows
+- **Failure:** Return value `<= 0` indicates operation failed
+
+### Common Error Scenarios
+
+1. **Invalid Price:** `precio_bien` must be a valid positive double value
+   ```java
+   if (precio <= 0) {
+       throw new IllegalArgumentException("Price must be positive");
+   }
+   ```
+
+2. **Missing Provider:** `nom_provee` should reference a valid provider
+   ```java
+   Proveedor provider = proveedorService.buscarPorNombre(nom_provee);
+   if (provider == null) {
+       // Handle invalid provider
+   }
+   ```
+
+3. **Invalid Date:** `fecha_llegada` must be a valid SQL Date
+   ```java
+   try {
+       Date fecha = Date.valueOf(fechaStr);
+   } catch (IllegalArgumentException e) {
+       // Handle invalid date format
+   }
+   ```
+
+4. **Entity Not Found:** When updating or deleting a non-existent inscription
+   ```java
+   InscripcionSUNARP bean = servicio.buscarPorId(cod);
+   if (bean == null) {
+       System.out.println("Inscription not found");
+       return;
+   }
+   ```
+
+### Database Constraints
+
+- Primary key constraint on `codigo_inscri`
+- Possible foreign key constraint on provider name
+- Not null constraints on required fields
+
+---
+
+## Related Components
+
+### Data Access Layer
+
+- **[InscripcionSUNARPDAO](/api/dao/inscripcion-sunarp-dao)** - Data access interface
+- **[MySqlInscripcionSUNARPDAO](/api/dao/mysql-inscripcion-sunarp-dao)** - MySQL implementation
+
+### Entity Layer
+
+- **[InscripcionSUNARP Entity](/api/entities/inscripcion-sunarp)** - Domain model
+
+### Related Services
+
+- **[BienesServices](/api/services/bienes-service)** - Similar structure for managing regular goods
+- **[ProveedorServices](/api/services/proveedor-service)** - Manages providers referenced in inscriptions
+
+### Presentation Layer
+
+- **ServletInscripcionSUNARP** - Servlet controller (if exists)
+- **InscripcionSUNARP.jsp** - View layer for displaying inscriptions
+
+---
+
+## Business Context
+
+### SUNARP Overview
+
+SUNARP (Superintendencia Nacional de los Registros Públicos) is Peru's national public registry authority. The system handles:
+
+- **Property Registry:** Real estate and movable assets
+- **Vehicle Registry:** Automobile and vehicle ownership
+- **Legal Entity Registry:** Business and organization registration
+
+### Use Cases
+
+1. **Asset Registration:** Register newly acquired assets that require public registry
+2. **Price Tracking:** Maintain valuation history of registered assets
+3. **Provider Documentation:** Link assets to their providers for audit trails
+4. **Compliance:** Ensure all significant assets are properly registered
+
+### Data Integrity
+
+```java
+// Validate before registration
+public boolean validarInscripcion(InscripcionSUNARP bean) {
+    if (bean.getPrecio_bien() <= 0) return false;
+    if (bean.getCantidad_bien() <= 0) return false;
+    if (bean.getDescrip_bien() == null || bean.getDescrip_bien().trim().isEmpty()) return false;
+    if (bean.getNom_provee() == null) return false;
+    return true;
+}
+```
+
+### Reporting
+
+```java
+// Generate SUNARP report
+public void generarReporteSUNARP() {
+    List<InscripcionSUNARP> inscripciones = servicio.listarTodos();
+    
+    double valorTotal = inscripciones.stream()
+        .mapToDouble(InscripcionSUNARP::getPrecio_bien)
+        .sum();
+    
+    System.out.println("Total registered assets: " + inscripciones.size());
+    System.out.println("Total value: S/. " + valorTotal);
+}
+```

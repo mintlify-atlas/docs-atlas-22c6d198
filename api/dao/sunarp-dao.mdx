@@ -1,0 +1,493 @@
+---
+title: 'InscripcionSUNARPDAO'
+description: 'Data access layer for managing SUNARP (Public Registry) inscription records'
+---
+
+## Overview
+
+The `InscripcionSUNARPDAO` interface and its MySQL implementation provide CRUD operations for managing **inscripciones SUNARP** (Public Registry inscriptions). SUNARP (Superintendencia Nacional de los Registros Públicos) is Peru's national public registry system for property and asset registration.
+
+### Interface
+
+**Package**: `com.bienes.interfaces`
+
+```java InscripcionSUNARPDAO.java
+public interface InscripcionSUNARPDAO {
+    public int save(InscripcionSUNARP bean);
+    public int update(InscripcionSUNARP bean);
+    public int delete(int cod);
+    public InscripcionSUNARP findById(int cod);
+    public List<InscripcionSUNARP> listAll();
+}
+```
+
+### Implementation
+
+**Package**: `com.bienes.dao`  
+**Class**: `MySqlInscripcionSUNARPDAO`  
+**Location**: `com/bienes/dao/MySqlInscripcionSUNARPDAO.java`
+
+## Database Schema
+
+### Table: `inscripcion_sunarp`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `codigo_inscri` | INT (PK, AUTO_INCREMENT) | Unique inscription identifier |
+| `descripcion_bien` | VARCHAR | Asset description |
+| `cantidad_bien` | INT | Quantity |
+| `precio_bien` | DOUBLE | Asset price/value |
+| `nom_provee` | VARCHAR | Supplier name |
+| `fecha_llegada` | DATE | Arrival/registration date |
+
+### Entity Mapping
+
+```java InscripcionSUNARP.java
+public class InscripcionSUNARP {
+    public int codigo_inscri;
+    public String descrip_bien;
+    public int cantidad_bien;
+    public double precio_bien;
+    public String nom_provee;
+    public Date fecha_llegada;
+    
+    // Getters and setters...
+}
+```
+
+## Method Reference
+
+### save()
+
+Inserts a new SUNARP inscription record into the database.
+
+```java
+public int save(InscripcionSUNARP bean)
+```
+
+<ParamField path="bean" type="InscripcionSUNARP" required>
+  Inscription object containing:
+  - `descrip_bien`: Asset description
+  - `cantidad_bien`: Quantity
+  - `precio_bien`: Asset price/value
+  - `nom_provee`: Supplier name
+  - `fecha_llegada`: Arrival or registration date
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected (1 on success, -1 on error)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+INSERT INTO inscripcion_sunarp 
+VALUES (null, ?, ?, ?, ?, ?)
+```
+
+**Parameters**:
+1. `descripcion_bien` (String)
+2. `cantidad_bien` (int)
+3. `precio_bien` (double)
+4. `nom_provee` (String)
+5. `fecha_llegada` (Date)
+
+#### Implementation
+
+```java MySqlInscripcionSUNARPDAO.java:17-49
+@Override
+public int save(InscripcionSUNARP bean) {
+    int salida = -1;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "insert into inscripcion_sunarp values(null,?,?,?,?,?)";
+        pstm = cn.prepareStatement(sql);
+        pstm.setString(1, bean.getDescrip_bien());
+        pstm.setInt(2, bean.getCantidad_bien());
+        pstm.setDouble(3, bean.getPrecio_bien());
+        pstm.setString(4, bean.getNom_provee());
+        pstm.setDate(5, bean.getFecha_llegada());
+        salida = pstm.executeUpdate();
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return salida;
+}
+```
+
+---
+
+### update()
+
+Updates an existing SUNARP inscription record.
+
+```java
+public int update(InscripcionSUNARP bean)
+```
+
+<ParamField path="bean" type="InscripcionSUNARP" required>
+  Inscription object with updated values, must include `codigo_inscri` for identification
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected (1 on success, -1 on error)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+UPDATE inscripcion_sunarp 
+SET descripcion_bien=?, 
+    cantidad_bien=?, 
+    precio_bien=?, 
+    nom_provee=?, 
+    fecha_llegada=? 
+WHERE codigo_inscri=?
+```
+
+**Parameters**:
+1. `descripcion_bien` (String)
+2. `cantidad_bien` (int)
+3. `precio_bien` (double)
+4. `nom_provee` (String)
+5. `fecha_llegada` (Date)
+6. `codigo_inscri` (int) - WHERE condition
+
+#### Implementation
+
+```java MySqlInscripcionSUNARPDAO.java:52-84
+@Override
+public int update(InscripcionSUNARP bean) {
+    int salida = -1;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "update inscripcion_sunarp set descripcion_bien=?, cantidad_bien=?, precio_bien=?, nom_provee=?, fecha_llegada=? where codigo_inscri=?";
+        pstm = cn.prepareStatement(sql);
+        pstm.setString(1, bean.getDescrip_bien());
+        pstm.setInt(2, bean.getCantidad_bien());
+        pstm.setDouble(3, bean.getPrecio_bien());
+        pstm.setString(4, bean.getNom_provee());
+        pstm.setDate(5, bean.getFecha_llegada());
+        pstm.setInt(6, bean.getCodigo_inscri());
+        salida = pstm.executeUpdate();
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return salida;
+}
+```
+
+---
+
+### delete()
+
+Deletes a SUNARP inscription record by its code.
+
+```java
+public int delete(int cod)
+```
+
+<ParamField path="cod" type="int" required>
+  Inscription code (codigo_inscri) to delete
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected (1 on success, -1 on error)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+DELETE FROM inscripcion_sunarp WHERE codigo_inscri=?
+```
+
+<Warning>
+Deleting SUNARP inscriptions may have legal implications. Consider implementing an audit trail or soft delete mechanism for compliance.
+</Warning>
+
+#### Implementation
+
+```java MySqlInscripcionSUNARPDAO.java:87-114
+@Override
+public int delete(int cod) {
+    int salida = -1;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "delete from inscripcion_sunarp where codigo_inscri=?";
+        pstm = cn.prepareStatement(sql);
+        pstm.setInt(1, cod);
+        salida = pstm.executeUpdate();
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return salida;
+}
+```
+
+---
+
+### findById()
+
+Retrieves a single SUNARP inscription by its unique identifier.
+
+```java
+public InscripcionSUNARP findById(int cod)
+```
+
+<ParamField path="cod" type="int" required>
+  Inscription code (codigo_inscri) to retrieve
+</ParamField>
+
+<ResponseField name="return" type="InscripcionSUNARP">
+  Inscription object if found, `null` otherwise
+</ResponseField>
+
+#### SQL Query
+
+```sql
+SELECT * FROM inscripcion_sunarp WHERE codigo_inscri=?
+```
+
+#### Implementation
+
+```java MySqlInscripcionSUNARPDAO.java:117-159
+@Override
+public InscripcionSUNARP findById(int cod) {
+    InscripcionSUNARP bean = null;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    ResultSet rs = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "select * from inscripcion_sunarp where codigo_inscri=?";
+        pstm = cn.prepareStatement(sql);
+        pstm.setInt(1, cod);
+        rs = pstm.executeQuery();
+        if(rs.next()) {
+            bean = new InscripcionSUNARP();
+            bean.setCodigo_inscri(rs.getInt(1));
+            bean.setDescrip_bien(rs.getString(2));
+            bean.setCantidad_bien(rs.getInt(3));
+            bean.setPrecio_bien(rs.getDouble(4));
+            bean.setNom_provee(rs.getString(5));
+            bean.setFecha_llegada(rs.getDate(6));
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(rs != null) rs.close();
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return bean;
+}
+```
+
+---
+
+### listAll()
+
+Retrieves all SUNARP inscription records from the database.
+
+```java
+public List<InscripcionSUNARP> listAll()
+```
+
+<ResponseField name="return" type="List<InscripcionSUNARP>">
+  List of all inscription records (empty list if none found)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+SELECT * FROM inscripcion_sunarp
+```
+
+#### Implementation
+
+```java MySqlInscripcionSUNARPDAO.java:162-208
+@Override
+public List<InscripcionSUNARP> listAll() {
+    List<InscripcionSUNARP> lista = new ArrayList<InscripcionSUNARP>();
+    InscripcionSUNARP bean = null;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    ResultSet rs = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "select * from inscripcion_sunarp";
+        pstm = cn.prepareStatement(sql);
+        rs = pstm.executeQuery();
+        while(rs.next()) {
+            bean = new InscripcionSUNARP();
+            bean.setCodigo_inscri(rs.getInt(1));
+            bean.setDescrip_bien(rs.getString(2));
+            bean.setCantidad_bien(rs.getInt(3));
+            bean.setPrecio_bien(rs.getDouble(4));
+            bean.setNom_provee(rs.getString(5));
+            bean.setFecha_llegada(rs.getDate(6));
+            lista.add(bean);
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(rs != null) rs.close();
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return lista;
+}
+```
+
+## Usage Examples
+
+### Creating a SUNARP Inscription
+
+```java
+// Obtain DAO instance
+DAOFactory factory = DAOFactory.getDAOFactory(DAOFactory.MYSQL);
+InscripcionSUNARPDAO dao = factory.getInscripcionSUNARPDAO();
+
+// Create inscription object
+InscripcionSUNARP inscripcion = new InscripcionSUNARP();
+inscripcion.setDescrip_bien("Terreno Urbano - Miraflores");
+inscripcion.setCantidad_bien(1);
+inscripcion.setPrecio_bien(500000.00);
+inscripcion.setNom_provee("Inmobiliaria Lima S.A.");
+inscripcion.setFecha_llegada(new Date(System.currentTimeMillis()));
+
+// Save to database
+int result = dao.save(inscripcion);
+if(result > 0) {
+    System.out.println("SUNARP inscription created successfully");
+}
+```
+
+### Retrieving All Inscriptions
+
+```java
+InscripcionSUNARPDAO dao = factory.getInscripcionSUNARPDAO();
+List<InscripcionSUNARP> inscripciones = dao.listAll();
+
+double totalValue = 0;
+for(InscripcionSUNARP ins : inscripciones) {
+    System.out.println(ins.getDescrip_bien() + " - $" + ins.getPrecio_bien());
+    totalValue += ins.getPrecio_bien();
+}
+System.out.println("Total registered value: $" + totalValue);
+```
+
+### Updating Inscription Value
+
+```java
+InscripcionSUNARPDAO dao = factory.getInscripcionSUNARPDAO();
+InscripcionSUNARP inscripcion = dao.findById(42);
+
+if(inscripcion != null) {
+    // Update property value
+    inscripcion.setPrecio_bien(550000.00);
+    int result = dao.update(inscripcion);
+    if(result > 0) {
+        System.out.println("Inscription value updated");
+    }
+}
+```
+
+## Business Context
+
+### SUNARP Overview
+
+**SUNARP** (Superintendencia Nacional de los Registros Públicos) is Peru's national public registry system that manages:
+
+- Property registrations
+- Vehicle registrations
+- Corporate records
+- Asset ownership records
+- Legal encumbrances
+
+<Note>
+This DAO manages inscription records within the application. Actual SUNARP registration requires official government processes.
+</Note>
+
+### Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Property Registration" icon="building">
+    Track real estate assets registered with SUNARP
+  </Card>
+  <Card title="Asset Valuation" icon="dollar-sign">
+    Store and update official asset valuations
+  </Card>
+  <Card title="Compliance Tracking" icon="clipboard-check">
+    Maintain records for audit and compliance purposes
+  </Card>
+  <Card title="Inventory Management" icon="warehouse">
+    Link registered assets to procurement records
+  </Card>
+</CardGroup>
+
+## Data Considerations
+
+### Price Precision
+
+The `precio_bien` field uses `DOUBLE` type. For financial applications, consider:
+
+```java
+// Use BigDecimal for precise financial calculations
+BigDecimal precio = new BigDecimal(inscripcion.getPrecio_bien());
+```
+
+### Date Handling
+
+The `fecha_llegada` field represents either arrival date or registration date depending on business logic. Ensure consistent interpretation across the application.
+
+## Related DAOs
+
+<CardGroup cols={2}>
+  <Card title="BienesDAO" icon="box" href="/api/dao/bienes-dao">
+    Regular asset management without SUNARP registration
+  </Card>
+  <Card title="ProveedorDAO" icon="truck" href="/api/dao/proveedor-dao">
+    Supplier information referenced in inscriptions
+  </Card>
+</CardGroup>
+
+## See Also
+
+- [DAO Overview](/api/dao/overview) - Architecture patterns and connection management
+- [SUNARP Official Website](https://www.sunarp.gob.pe/) - Peru's national public registry

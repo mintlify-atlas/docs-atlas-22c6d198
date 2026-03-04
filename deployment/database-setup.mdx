@@ -1,0 +1,671 @@
+---
+title: Database Setup
+description: Complete guide to setting up MySQL database for the asset management application including installation, schema creation, and initial configuration
+---
+
+This guide walks through setting up the MySQL database for the asset management application.
+
+## Prerequisites
+
+- MySQL Server 5.7 or higher (MySQL 8.0+ recommended)
+- MySQL client or MySQL Workbench
+- Sufficient privileges to create databases and users
+- At least 100MB of free disk space
+
+## MySQL Installation
+
+<Steps>
+  <Step title="Download MySQL">
+    Download MySQL Community Server from [mysql.com](https://dev.mysql.com/downloads/mysql/)
+    
+    Choose the version appropriate for your operating system:
+    - **Windows:** MySQL Installer
+    - **Linux:** Use package manager
+    - **macOS:** DMG installer or Homebrew
+  </Step>
+  
+  <Step title="Install MySQL Server">
+    <CodeGroup>
+    
+    ```bash Ubuntu/Debian
+    sudo apt update
+    sudo apt install mysql-server
+    sudo systemctl start mysql
+    sudo systemctl enable mysql
+    ```
+    
+    ```bash CentOS/RHEL
+    sudo yum install mysql-server
+    sudo systemctl start mysqld
+    sudo systemctl enable mysqld
+    ```
+    
+    ```bash macOS (Homebrew)
+    brew install mysql
+    brew services start mysql
+    ```
+    
+    ```powershell Windows
+    # Run the MySQL Installer and follow the wizard
+    # Select "Server Only" or "Full" installation
+    ```
+    
+    </CodeGroup>
+  </Step>
+  
+  <Step title="Secure MySQL Installation">
+    Run the security script to set root password and remove test databases:
+    
+    ```bash
+    sudo mysql_secure_installation
+    ```
+    
+    Answer the prompts:
+    - Set root password: **Yes** (use a strong password)
+    - Remove anonymous users: **Yes**
+    - Disallow root login remotely: **Yes** (for production)
+    - Remove test database: **Yes**
+    - Reload privilege tables: **Yes**
+  </Step>
+  
+  <Step title="Verify Installation">
+    ```bash
+    mysql --version
+    ```
+    
+    Expected output: `mysql  Ver 8.0.x for ...`
+  </Step>
+</Steps>
+
+## Database Creation
+
+<Steps>
+  <Step title="Connect to MySQL">
+    ```bash
+    mysql -u root -p
+    ```
+    
+    Enter the root password when prompted.
+  </Step>
+  
+  <Step title="Create Database">
+    ```sql
+    CREATE DATABASE gestionbienes
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
+    ```
+    
+    <Info>
+      Using `utf8mb4` ensures full Unicode support including emojis and special characters.
+    </Info>
+  </Step>
+  
+  <Step title="Select Database">
+    ```sql
+    USE gestionbienes;
+    ```
+  </Step>
+</Steps>
+
+## Table Schemas
+
+Create the following tables based on the application's data access layer.
+
+### User Authentication Tables
+
+<Accordion title="acceso - User Access Table">
+  Stores user credentials for authentication.
+  
+  ```sql
+  CREATE TABLE acceso (
+    id_acceso INT AUTO_INCREMENT PRIMARY KEY,
+    login_acceso VARCHAR(50) NOT NULL UNIQUE,
+    pass_acceso VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_login (login_acceso)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  ```
+  
+  **Columns:**
+  - `id_acceso`: Primary key, auto-incremented
+  - `login_acceso`: Username for login (unique)
+  - `pass_acceso`: User password (should be hashed in production)
+  - `created_at`: Account creation timestamp
+</Accordion>
+
+<Accordion title="menu - User Menu Options">
+  Stores menu options available to each user.
+  
+  ```sql
+  CREATE TABLE menu (
+    id_menu INT AUTO_INCREMENT PRIMARY KEY,
+    id_acceso INT NOT NULL,
+    descrip_menu VARCHAR(100) NOT NULL,
+    url_menu VARCHAR(200) NOT NULL,
+    icon_menu VARCHAR(50),
+    orden INT DEFAULT 0,
+    FOREIGN KEY (id_acceso) REFERENCES acceso(id_acceso) ON DELETE CASCADE,
+    INDEX idx_acceso (id_acceso)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  ```
+  
+  **Columns:**
+  - `id_menu`: Primary key
+  - `id_acceso`: Foreign key to acceso table
+  - `descrip_menu`: Menu item description
+  - `url_menu`: Target URL for menu item
+  - `icon_menu`: Icon identifier for UI
+  - `orden`: Display order
+</Accordion>
+
+### Provider Management
+
+<Accordion title="proveedor - Suppliers Table">
+  Manages supplier/provider information.
+  
+  ```sql
+  CREATE TABLE proveedor (
+    id_prove INT AUTO_INCREMENT PRIMARY KEY,
+    nom_prove VARCHAR(100) NOT NULL,
+    dist_prove VARCHAR(100),
+    telf_prove VARCHAR(20),
+    estado_prove VARCHAR(20) DEFAULT 'ACTIVO',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_nombre (nom_prove),
+    INDEX idx_estado (estado_prove)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  ```
+  
+  **Columns:**
+  - `id_prove`: Primary key
+  - `nom_prove`: Provider name
+  - `dist_prove`: District/location
+  - `telf_prove`: Phone number
+  - `estado_prove`: Status (ACTIVO/INACTIVO)
+</Accordion>
+
+### Operator Management
+
+<Accordion title="operador - Operators Table">
+  Stores operator/handler information.
+  
+  ```sql
+  CREATE TABLE operador (
+    id_ope INT AUTO_INCREMENT PRIMARY KEY,
+    nom_ope VARCHAR(100) NOT NULL,
+    dist_ope VARCHAR(100),
+    cel_ope INT,
+    estado_ope VARCHAR(20) DEFAULT 'ACTIVO',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_nombre (nom_ope),
+    INDEX idx_estado (estado_ope)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  ```
+  
+  **Columns:**
+  - `id_ope`: Primary key
+  - `nom_ope`: Operator name
+  - `dist_ope`: District/location
+  - `cel_ope`: Cell phone number
+  - `estado_ope`: Status (ACTIVO/INACTIVO)
+</Accordion>
+
+### Purchase Order Management
+
+<Accordion title="grr-ordendecompra - Purchase Orders">
+  Tracks purchase orders and guides.
+  
+  ```sql
+  CREATE TABLE `grr-ordendecompra` (
+    codigo INT AUTO_INCREMENT PRIMARY KEY,
+    proveedor VARCHAR(100) NOT NULL,
+    fecha_compra DATE NOT NULL,
+    descripcion TEXT,
+    cantidad VARCHAR(50),
+    precio DOUBLE(10,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_proveedor (proveedor),
+    INDEX idx_fecha (fecha_compra)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  ```
+  
+  **Columns:**
+  - `codigo`: Primary key
+  - `proveedor`: Provider name
+  - `fecha_compra`: Purchase date
+  - `descripcion`: Order description
+  - `cantidad`: Quantity description
+  - `precio`: Total price
+</Accordion>
+
+### Asset Management
+
+<Accordion title="bienes - Assets/Goods Table">
+  Core table for asset tracking.
+  
+  ```sql
+  CREATE TABLE bienes (
+    codigo_bien INT AUTO_INCREMENT PRIMARY KEY,
+    descrip_bien VARCHAR(200) NOT NULL,
+    cantidad_bien INT NOT NULL DEFAULT 0,
+    nom_provee VARCHAR(100),
+    fecha_llegada DATE,
+    codigo_ordencompra INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (codigo_ordencompra) REFERENCES `grr-ordendecompra`(codigo) ON DELETE SET NULL,
+    INDEX idx_proveedor (nom_provee),
+    INDEX idx_fecha (fecha_llegada),
+    INDEX idx_orden (codigo_ordencompra)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  ```
+  
+  **Columns:**
+  - `codigo_bien`: Primary key
+  - `descrip_bien`: Asset description
+  - `cantidad_bien`: Quantity
+  - `nom_provee`: Provider name
+  - `fecha_llegada`: Arrival date
+  - `codigo_ordencompra`: Foreign key to purchase order
+</Accordion>
+
+### SUNARP Registration
+
+<Accordion title="inscripcion_sunarp - Property Registration">
+  Tracks assets registered with SUNARP (Peruvian property registry).
+  
+  ```sql
+  CREATE TABLE inscripcion_sunarp (
+    codigo_inscri INT AUTO_INCREMENT PRIMARY KEY,
+    descripcion_bien VARCHAR(200) NOT NULL,
+    cantidad_bien INT NOT NULL DEFAULT 0,
+    precio_bien DOUBLE(10,2) NOT NULL,
+    nom_provee VARCHAR(100),
+    fecha_llegada DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_fecha (fecha_llegada),
+    INDEX idx_proveedor (nom_provee)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  ```
+  
+  **Columns:**
+  - `codigo_inscri`: Primary key
+  - `descripcion_bien`: Asset description
+  - `cantidad_bien`: Quantity
+  - `precio_bien`: Asset price
+  - `nom_provee`: Provider name
+  - `fecha_llegada`: Arrival/registration date
+</Accordion>
+
+## Complete Schema Creation Script
+
+Run this complete script to create all tables at once:
+
+```sql
+-- Create database
+CREATE DATABASE IF NOT EXISTS gestionbienes
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+
+USE gestionbienes;
+
+-- User authentication
+CREATE TABLE acceso (
+  id_acceso INT AUTO_INCREMENT PRIMARY KEY,
+  login_acceso VARCHAR(50) NOT NULL UNIQUE,
+  pass_acceso VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_login (login_acceso)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- User menu
+CREATE TABLE menu (
+  id_menu INT AUTO_INCREMENT PRIMARY KEY,
+  id_acceso INT NOT NULL,
+  descrip_menu VARCHAR(100) NOT NULL,
+  url_menu VARCHAR(200) NOT NULL,
+  icon_menu VARCHAR(50),
+  orden INT DEFAULT 0,
+  FOREIGN KEY (id_acceso) REFERENCES acceso(id_acceso) ON DELETE CASCADE,
+  INDEX idx_acceso (id_acceso)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Providers
+CREATE TABLE proveedor (
+  id_prove INT AUTO_INCREMENT PRIMARY KEY,
+  nom_prove VARCHAR(100) NOT NULL,
+  dist_prove VARCHAR(100),
+  telf_prove VARCHAR(20),
+  estado_prove VARCHAR(20) DEFAULT 'ACTIVO',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_nombre (nom_prove),
+  INDEX idx_estado (estado_prove)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Operators
+CREATE TABLE operador (
+  id_ope INT AUTO_INCREMENT PRIMARY KEY,
+  nom_ope VARCHAR(100) NOT NULL,
+  dist_ope VARCHAR(100),
+  cel_ope INT,
+  estado_ope VARCHAR(20) DEFAULT 'ACTIVO',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_nombre (nom_ope),
+  INDEX idx_estado (estado_ope)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Purchase orders
+CREATE TABLE `grr-ordendecompra` (
+  codigo INT AUTO_INCREMENT PRIMARY KEY,
+  proveedor VARCHAR(100) NOT NULL,
+  fecha_compra DATE NOT NULL,
+  descripcion TEXT,
+  cantidad VARCHAR(50),
+  precio DOUBLE(10,2) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_proveedor (proveedor),
+  INDEX idx_fecha (fecha_compra)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Assets/Goods
+CREATE TABLE bienes (
+  codigo_bien INT AUTO_INCREMENT PRIMARY KEY,
+  descrip_bien VARCHAR(200) NOT NULL,
+  cantidad_bien INT NOT NULL DEFAULT 0,
+  nom_provee VARCHAR(100),
+  fecha_llegada DATE,
+  codigo_ordencompra INT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (codigo_ordencompra) REFERENCES `grr-ordendecompra`(codigo) ON DELETE SET NULL,
+  INDEX idx_proveedor (nom_provee),
+  INDEX idx_fecha (fecha_llegada),
+  INDEX idx_orden (codigo_ordencompra)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- SUNARP registration
+CREATE TABLE inscripcion_sunarp (
+  codigo_inscri INT AUTO_INCREMENT PRIMARY KEY,
+  descripcion_bien VARCHAR(200) NOT NULL,
+  cantidad_bien INT NOT NULL DEFAULT 0,
+  precio_bien DOUBLE(10,2) NOT NULL,
+  nom_provee VARCHAR(100),
+  fecha_llegada DATE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_fecha (fecha_llegada),
+  INDEX idx_proveedor (nom_provee)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+<Note>
+  Save this script as `create_schema.sql` for easy redeployment.
+</Note>
+
+## Initial Data / Seed Data
+
+Insert essential data to get started:
+
+### Default Admin User
+
+```sql
+-- Create admin user (password: admin123 - CHANGE IN PRODUCTION!)
+INSERT INTO acceso (login_acceso, pass_acceso) 
+VALUES ('admin', 'admin123');
+
+-- Add menu options for admin user
+INSERT INTO menu (id_acceso, descrip_menu, url_menu, icon_menu, orden) VALUES
+(1, 'Dashboard', '/index.jsp', 'fa-dashboard', 1),
+(1, 'Gestión de Bienes', '/bienes.jsp', 'fa-box', 2),
+(1, 'Proveedores', '/proveedor.jsp', 'fa-truck', 3),
+(1, 'Operadores', '/operador.jsp', 'fa-users', 4),
+(1, 'Órdenes de Compra', '/ordencompra.jsp', 'fa-shopping-cart', 5),
+(1, 'SUNARP', '/sunarp.jsp', 'fa-file-text', 6);
+```
+
+<Warning>
+  **Security Alert:** The default password is plain text. In production, implement password hashing using BCrypt or similar before storing.
+</Warning>
+
+### Sample Provider Data
+
+```sql
+INSERT INTO proveedor (nom_prove, dist_prove, telf_prove, estado_prove) VALUES
+('Comercial ABC S.A.C.', 'Lima', '01-2345678', 'ACTIVO'),
+('Distribuidora XYZ', 'San Isidro', '01-9876543', 'ACTIVO'),
+('Importaciones Global', 'Miraflores', '01-5554444', 'ACTIVO');
+```
+
+### Sample Operator Data
+
+```sql
+INSERT INTO operador (nom_ope, dist_ope, cel_ope, estado_ope) VALUES
+('Juan Pérez', 'Lima', 987654321, 'ACTIVO'),
+('María González', 'Callao', 912345678, 'ACTIVO'),
+('Carlos Rodríguez', 'San Isidro', 998877665, 'ACTIVO');
+```
+
+## Database User Permissions
+
+<Steps>
+  <Step title="Create Application User">
+    Create a dedicated database user for the application:
+    
+    ```sql
+    CREATE USER 'gestionbienes_app'@'localhost' 
+    IDENTIFIED BY 'secure_password_here';
+    ```
+    
+    For remote connections:
+    ```sql
+    CREATE USER 'gestionbienes_app'@'%' 
+    IDENTIFIED BY 'secure_password_here';
+    ```
+  </Step>
+  
+  <Step title="Grant Necessary Privileges">
+    Grant only required permissions:
+    
+    ```sql
+    -- For development (full access)
+    GRANT ALL PRIVILEGES ON gestionbienes.* 
+    TO 'gestionbienes_app'@'localhost';
+    
+    -- For production (restricted access)
+    GRANT SELECT, INSERT, UPDATE, DELETE ON gestionbienes.* 
+    TO 'gestionbienes_app'@'localhost';
+    
+    FLUSH PRIVILEGES;
+    ```
+  </Step>
+  
+  <Step title="Verify Permissions">
+    ```sql
+    SHOW GRANTS FOR 'gestionbienes_app'@'localhost';
+    ```
+  </Step>
+  
+  <Step title="Update Application Configuration">
+    Update `MySqlConexion.java` with the new user:
+    
+    ```java
+    user="gestionbienes_app";
+    pass="secure_password_here";
+    ```
+  </Step>
+</Steps>
+
+<Info>
+  The principle of least privilege: Grant only the minimum permissions required for the application to function.
+</Info>
+
+## Backup and Recovery
+
+### Database Backup
+
+<Steps>
+  <Step title="Full Database Backup">
+    ```bash
+    mysqldump -u root -p gestionbienes > gestionbienes_backup_$(date +%Y%m%d).sql
+    ```
+  </Step>
+  
+  <Step title="Compressed Backup">
+    ```bash
+    mysqldump -u root -p gestionbienes | gzip > gestionbienes_backup_$(date +%Y%m%d).sql.gz
+    ```
+  </Step>
+  
+  <Step title="Backup Specific Tables">
+    ```bash
+    mysqldump -u root -p gestionbienes acceso menu > users_backup.sql
+    ```
+  </Step>
+</Steps>
+
+### Database Recovery
+
+<Steps>
+  <Step title="Restore from Backup">
+    ```bash
+    mysql -u root -p gestionbienes < gestionbienes_backup_20260304.sql
+    ```
+  </Step>
+  
+  <Step title="Restore from Compressed Backup">
+    ```bash
+    gunzip < gestionbienes_backup_20260304.sql.gz | mysql -u root -p gestionbienes
+    ```
+  </Step>
+</Steps>
+
+### Automated Backup Script
+
+Create a cron job for daily backups:
+
+```bash
+#!/bin/bash
+# backup_db.sh
+
+BACKUP_DIR="/var/backups/mysql"
+DATE=$(date +%Y%m%d_%H%M%S)
+DB_NAME="gestionbienes"
+
+mkdir -p $BACKUP_DIR
+mysqldump -u backup_user -p'backup_password' $DB_NAME | gzip > $BACKUP_DIR/${DB_NAME}_${DATE}.sql.gz
+
+# Keep only last 30 days of backups
+find $BACKUP_DIR -name "${DB_NAME}_*.sql.gz" -mtime +30 -delete
+```
+
+Schedule with crontab:
+```bash
+# Run daily at 2 AM
+0 2 * * * /path/to/backup_db.sh
+```
+
+## Performance Optimization
+
+### Indexing Strategy
+
+The schema includes indexes on frequently queried columns:
+
+- `acceso.login_acceso` - Fast user authentication
+- `proveedor.nom_prove` - Quick provider lookups
+- `bienes.fecha_llegada` - Date range queries
+- `bienes.codigo_ordencompra` - Join optimization
+
+### Connection Pooling
+
+For production, implement connection pooling instead of creating connections per request. See [configuration guide](/deployment/configuration) for details.
+
+## Verify Database Setup
+
+Run these checks to ensure proper setup:
+
+```sql
+-- Check all tables exist
+SHOW TABLES;
+
+-- Verify table structure
+DESCRIBE acceso;
+DESCRIBE bienes;
+DESCRIBE proveedor;
+
+-- Check user permissions
+SHOW GRANTS FOR 'gestionbienes_app'@'localhost';
+
+-- Verify foreign keys
+SELECT 
+  TABLE_NAME,
+  COLUMN_NAME,
+  CONSTRAINT_NAME,
+  REFERENCED_TABLE_NAME,
+  REFERENCED_COLUMN_NAME
+FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+WHERE TABLE_SCHEMA = 'gestionbienes'
+  AND REFERENCED_TABLE_NAME IS NOT NULL;
+
+-- Check initial data
+SELECT COUNT(*) as user_count FROM acceso;
+SELECT COUNT(*) as menu_count FROM menu;
+```
+
+## Troubleshooting
+
+<Accordion title="ERROR 1045: Access denied for user">
+  **Cause:** Incorrect username or password
+  
+  **Solution:**
+  1. Verify user exists: `SELECT User, Host FROM mysql.user;`
+  2. Reset password: `ALTER USER 'username'@'localhost' IDENTIFIED BY 'newpassword';`
+  3. Update application configuration
+</Accordion>
+
+<Accordion title="ERROR 1049: Unknown database">
+  **Cause:** Database not created
+  
+  **Solution:**
+  ```sql
+  SHOW DATABASES;
+  CREATE DATABASE IF NOT EXISTS gestionbienes;
+  ```
+</Accordion>
+
+<Accordion title="ERROR 1215: Cannot add foreign key constraint">
+  **Cause:** Referenced table doesn't exist or column types don't match
+  
+  **Solution:**
+  1. Create tables in correct order (parent tables first)
+  2. Verify column types match exactly
+  3. Ensure referenced columns have indexes
+</Accordion>
+
+<Accordion title="Slow query performance">
+  **Cause:** Missing indexes or inefficient queries
+  
+  **Solution:**
+  1. Enable slow query log: `SET GLOBAL slow_query_log = 'ON';`
+  2. Analyze queries: `EXPLAIN SELECT ...`
+  3. Add indexes to frequently queried columns
+  4. Implement connection pooling
+</Accordion>
+
+## Next Steps
+
+After setting up the database:
+
+1. [Configure the application](/deployment/configuration) - Update connection settings
+2. Test database connectivity from the application
+3. Deploy the application to your server
+4. Set up automated backups and monitoring
+5. Implement database security best practices
+
+<Note>
+  Keep your schema creation script version controlled and document all schema changes for team collaboration.
+</Note>

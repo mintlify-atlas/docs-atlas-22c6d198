@@ -1,0 +1,712 @@
+---
+title: 'Design Patterns'
+description: 'Design patterns and architectural principles implemented in the system'
+---
+
+## Overview
+
+The asset management system implements several proven design patterns to achieve maintainability, flexibility, and testability. This document explores each pattern with real code examples from the codebase.
+
+<Info>
+All code examples are taken directly from the source code and reference actual file locations and line numbers.
+</Info>
+
+## DAO Pattern (Data Access Object)
+
+The DAO pattern abstracts and encapsulates all access to the data source, providing a clean separation between business logic and data access logic.
+
+### Pattern Structure
+
+```
+┌─────────────────┐
+│   Interface     │
+│   BienesDAO     │
+└────────┬────────┘
+         │
+         │ implements
+         │
+┌────────▼────────┐
+│  Concrete DAO   │
+│ MySqlBienesDAO  │
+└─────────────────┘
+```
+
+### Interface Definition
+
+<Accordion title="BienesDAO Interface">
+  ```java
+  // interfaces/BienesDAO.java:7-16
+  public interface BienesDAO {
+    public int save(Bienes bean);
+    public int update(Bienes bean);
+    public int delete(int cod);
+    public Bienes findById(int cod);
+    public List<Bienes> listAll();
+    public List<Bienes> listarBienesporCodigodeComptra(int cod);
+  }
+  ```
+  
+  The interface defines all CRUD operations and custom queries without exposing implementation details.
+</Accordion>
+
+### Concrete Implementation
+
+<Accordion title="MySqlBienesDAO Implementation">
+  ```java
+  // dao/MySqlBienesDAO.java:14
+  public class MySqlBienesDAO implements BienesDAO {
+    
+    @Override
+    public int save(Bienes bean) {
+      int salida = -1;
+      Connection cn = null;
+      PreparedStatement pstm = null;
+      try {
+        cn = MySqlConexion.getConectar();
+        String sql = "insert into bienes values(null,?,?,?,?,?)";
+        pstm = cn.prepareStatement(sql);
+        pstm.setString(1, bean.getDescrip_bien());
+        pstm.setInt(2, bean.getCantidad_bien());
+        pstm.setString(3, bean.getNom_provee());
+        pstm.setDate(4, bean.getFecha_llegada());
+        pstm.setInt(5, bean.getCodigoOrdendeCompra());
+        salida = pstm.executeUpdate();
+      } catch (SQLException e) {
+        e.printStackTrace();
+      } finally {
+        try {
+          if(pstm != null) pstm.close();
+          if(cn != null) cn.close();
+        } catch (SQLException e2) {
+          e2.printStackTrace();
+        }
+      }
+      return salida;
+    }
+    
+    // ... other CRUD methods
+  }
+  ```
+  
+  Reference: `dao/MySqlBienesDAO.java:16-48`
+</Accordion>
+
+### Benefits
+
+<CardGroup cols={2}>
+  <Card title="Abstraction" icon="layer-group">
+    Business logic doesn't need to know about database implementation details.
+  </Card>
+  
+  <Card title="Flexibility" icon="shuffle">
+    Easy to switch between different databases (MySQL, Oracle, PostgreSQL) by implementing new DAO classes.
+  </Card>
+  
+  <Card title="Testability" icon="vial">
+    Mock implementations can be created for unit testing without touching the database.
+  </Card>
+  
+  <Card title="Maintainability" icon="wrench">
+    Database-related changes are isolated to DAO classes.
+  </Card>
+</CardGroup>
+
+### All DAO Implementations
+
+- `MySqlBienesDAO` → `BienesDAO` (dao/MySqlBienesDAO.java:14)
+- `MySqlGuiaDAO` → `GuiaDAO` (dao/MySqlGuiaDAO.java:15)
+- `MySqlProveedorDAO` → `ProveedorDAO` (dao/MySqlProveedorDAO.java:14)
+- `MySqlOperadorDAO` → `OperadorDAO`
+- `MySqlInscripcionSUNARPDAO` → `InscripcionSUNARPDAO` (dao/MySqlInscripcionSUNARPDAO.java:14)
+- `MySqlLoginDAO` → `LoginDAO` (dao/MySqlLoginDAO.java:16)
+
+## Factory Pattern (Abstract Factory)
+
+The Factory pattern provides an interface for creating families of related objects (DAOs) without specifying their concrete classes.
+
+### Pattern Structure
+
+```
+┌──────────────────┐
+│  Abstract Factory│
+│    DAOFactory    │
+└────────┬─────────┘
+         │
+         │ extends
+         │
+┌────────▼──────────┐
+│ Concrete Factory  │
+│ MySqlDAOFactory   │
+└───────────────────┘
+         │
+         │ creates
+         ▼
+┌───────────────────┐
+│   DAO Objects     │
+│ MySqlBienesDAO    │
+│ MySqlGuiaDAO      │
+│ etc...            │
+└───────────────────┘
+```
+
+### Abstract Factory
+
+<Accordion title="DAOFactory Abstract Class">
+  ```java
+  // fabrica/DAOFactory.java:14-57
+  public abstract class DAOFactory {
+    // Supported data sources
+    public static final int MYSQL = 1;
+    public static final int ORACLE = 2;
+    public static final int DB2 = 3;
+    public static final int SQLSERVER = 4;
+    public static final int XML = 5;
+    
+    // Abstract methods for each DAO type
+    public abstract BienesDAO getBienesDAO();
+    public abstract InscripcionSUNARPDAO getInscripcionSUNARPDAO();
+    public abstract ProveedorDAO getProveedorDAO();
+    public abstract GuiaDAO getGuiaDAO();
+    public abstract LoginDAO getLoginDAO();
+    public abstract OperadorDAO getOperadorDAO();
+    
+    // Factory method to get appropriate factory
+    public static DAOFactory getDAOFactory(int whichFactory) {
+      switch(whichFactory) {
+        case MYSQL:
+          return new MySqlDAOFactory();
+        case XML:
+          // return new XmlDAOFactory();
+        case ORACLE:
+          // return new OracleDAOFactory();
+        case SQLSERVER:
+          // return new SqlServerDAOFactory();
+        default:
+          return null;
+      }
+    }
+  }
+  ```
+  
+  Reference: `fabrica/DAOFactory.java:14-57`
+</Accordion>
+
+### Concrete Factory
+
+<Accordion title="MySqlDAOFactory Implementation">
+  ```java
+  // fabrica/MySqlDAOFactory.java:22-60
+  public class MySqlDAOFactory extends DAOFactory {
+    
+    public BienesDAO getBienesDAO() {
+      return new MySqlBienesDAO();
+    }
+    
+    @Override
+    public GuiaDAO getGuiaDAO() {
+      return new MySqlGuiaDAO();
+    }
+    
+    public InscripcionSUNARPDAO getInscripcionSUNARPDAO() {
+      return new MySqlInscripcionSUNARPDAO();
+    }
+    
+    @Override
+    public LoginDAO getLoginDAO() {
+      return new MySqlLoginDAO();
+    }
+    
+    @Override
+    public ProveedorDAO getProveedorDAO() {
+      return new MySqlProveedorDAO();
+    }
+    
+    @Override
+    public OperadorDAO getOperadorDAO() {
+      return new MySqlOperadorDAO();
+    }
+  }
+  ```
+  
+  Reference: `fabrica/MySqlDAOFactory.java:22-60`
+</Accordion>
+
+### Usage in Service Layer
+
+<Accordion title="Factory Pattern in Action">
+  ```java
+  // services/BienesServices.java:9-14
+  public class BienesServices {
+    // Step 1: Get factory for MySQL (constant 1 = MYSQL)
+    private DAOFactory fabrica = DAOFactory.getDAOFactory(1);
+    
+    // Step 2: Use factory to create DAO instances
+    private BienesDAO objBienes = fabrica.getBienesDAO();
+    
+    // Step 3: Use DAO through interface
+    public int registrar(Bienes bean) {
+      return objBienes.save(bean);
+    }
+  }
+  ```
+  
+  Reference: `services/BienesServices.java:11-20`
+</Accordion>
+
+### Benefits
+
+<CardGroup cols={2}>
+  <Card title="Database Agnostic" icon="database">
+    Switch between MySQL, Oracle, or other databases by changing a single constant.
+  </Card>
+  
+  <Card title="Centralized Creation" icon="building">
+    All DAO creation logic is centralized in factory classes.
+  </Card>
+  
+  <Card title="Extensibility" icon="plus">
+    Add support for new databases by creating new factory implementations.
+  </Card>
+  
+  <Card title="Consistency" icon="check">
+    Ensures related objects (DAOs) are created from the same family.
+  </Card>
+</CardGroup>
+
+<Note>
+To switch from MySQL to another database, only change `DAOFactory.getDAOFactory(1)` to a different constant and implement the corresponding factory.
+</Note>
+
+## MVC Pattern (Model-View-Controller)
+
+The MVC pattern separates the application into three interconnected components, promoting organized code and separation of concerns.
+
+### Pattern Structure
+
+```
+┌──────────────┐
+│     VIEW     │  JSP files display data
+│   (*.jsp)    │  and capture user input
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│  CONTROLLER  │  Servlets process requests,
+│  (Servlets)  │  invoke services, return views
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│    MODEL     │  Entity classes represent
+│  (Entities)  │  domain data
+└──────────────┘
+```
+
+### Model (Entity Classes)
+
+<Accordion title="Bienes Entity - Model Layer">
+  ```java
+  // entidad/Bienes.java:5-51
+  public class Bienes {
+    public int codigo_bien;
+    public String descrip_bien;
+    public int cantidad_bien;
+    public String nom_provee;
+    public Date fecha_llegada;
+    public int codigoOrdendeCompra;
+    
+    // Getters and setters
+    public int getCodigo_bien() {
+      return codigo_bien;
+    }
+    public void setCodigo_bien(int codigo_bien) {
+      this.codigo_bien = codigo_bien;
+    }
+    // ... other getters and setters
+  }
+  ```
+  
+  Reference: `entidad/Bienes.java:5-51`
+  
+  The Model represents the data and business domain. Entity classes are POJOs (Plain Old Java Objects) that map to database tables.
+</Accordion>
+
+### View (JSP Pages)
+
+<Accordion title="View Layer - JSP Example">
+  ```jsp
+  <!-- JSP form submitting to controller -->
+  <form action="ServletBienes" method="post">
+    <input type="hidden" name="tipo" value="REGISTRAR" />
+    <input type="text" name="descripcion" />
+    <input type="number" name="cantidad" />
+    <input type="text" name="nombreproveedor" />
+    <input type="date" name="fechallegada" />
+    <input type="submit" value="Registrar" />
+  </form>
+  
+  <!-- Display data from controller -->
+  <c:forEach items="${listarBienes}" var="bien">
+    <tr>
+      <td>${bien.codigo_bien}</td>
+      <td>${bien.descrip_bien}</td>
+      <td>${bien.cantidad_bien}</td>
+    </tr>
+  </c:forEach>
+  ```
+  
+  The View layer is responsible for presenting data to users and capturing input. JSP files located in `src/main/webapp/`.
+</Accordion>
+
+### Controller (Servlets)
+
+<Accordion title="ServletBienes - Controller Layer">
+  ```java
+  // controlador/ServletBienes.java:21-53
+  @WebServlet("/ServletBienes")
+  public class ServletBienes extends HttpServlet {
+    private BienesServices servicio;
+    
+    public ServletBienes() {
+      super();
+      servicio = new BienesServices();
+    }
+    
+    protected void service(HttpServletRequest request, 
+                          HttpServletResponse response) 
+                          throws ServletException, IOException {
+      // Get action from request
+      String accion = request.getParameter("tipo");
+      
+      if(accion.equals("LISTAR")) {
+        listarBienes(request, response);
+      }
+      else if(accion.equals("REGISTRAR")) {
+        registrarBienes(request, response);
+      }
+      else if(accion.equals("ELIMINAR")) {
+        eliminarBienes(request, response);
+      }
+    }
+    
+    private void listarBienes(HttpServletRequest request, 
+                             HttpServletResponse response) 
+                             throws ServletException, IOException {
+      List<Bienes> data = servicio.listarTodos();
+      request.setAttribute("listarBienes", data);
+      request.getRequestDispatcher("/Bienes.jsp").forward(request, response);
+    }
+  }
+  ```
+  
+  Reference: `controlador/ServletBienes.java:21-140`
+</Accordion>
+
+### MVC Flow Example
+
+<Accordion title="Complete Request Flow">
+  ```java
+  // 1. View captures data (JSP form submission)
+  // Bienes.jsp
+  <form action="ServletBienes" method="post">
+    <input name="tipo" value="REGISTRAR" />
+    <input name="descripcion" value="Laptop HP" />
+  </form>
+  
+  // 2. Controller receives request
+  // controlador/ServletBienes.java:76-128
+  private void registrarBienes(HttpServletRequest request, 
+                               HttpServletResponse response) {
+    String descrip = request.getParameter("descripcion");
+    
+    // Create model object
+    Bienes bean = new Bienes();
+    bean.setDescrip_bien(descrip);
+    // ... set other fields
+    
+    // Call service layer
+    int salida = servicio.registrar(bean);
+    
+    if(salida > 0) {
+      request.setAttribute("MENSAJE", "Bien registrado correctamente");
+      listarBienes(request, response);
+    }
+  }
+  
+  // 3. Service layer processes business logic
+  // services/BienesServices.java:19-21
+  public int registrar(Bienes bean) {
+    return objBienes.save(bean);
+  }
+  
+  // 4. DAO saves to database
+  // dao/MySqlBienesDAO.java:17-48
+  public int save(Bienes bean) {
+    // SQL insert operation
+  }
+  
+  // 5. Controller forwards to view
+  request.getRequestDispatcher("/Bienes.jsp").forward(request, response);
+  ```
+</Accordion>
+
+### MVC Components in Codebase
+
+| Layer | Package | Examples |
+|-------|---------|----------|
+| **Model** | `com.bienes.entidad` | Bienes, Proveedor, Operador, GuiayOrdendeCompra |
+| **View** | `src/main/webapp/*.jsp` | Bienes.jsp, Guia.jsp, Proveedor.jsp, index.jsp |
+| **Controller** | `com.bienes.controlador` | ServletBienes, ServletGuia, ServletProveedor, ServletLogin |
+
+## Service Layer Pattern
+
+The Service Layer pattern defines an application's boundary with a layer of services that establishes a set of available operations and coordinates responses.
+
+### Pattern Structure
+
+```
+┌──────────────┐
+│  Controller  │
+└──────┬───────┘
+       │ uses
+       ▼
+┌──────────────┐
+│   Service    │  Business logic and
+│    Layer     │  transaction coordination
+└──────┬───────┘
+       │ uses
+       ▼
+┌──────────────┐
+│   DAO/Data   │
+│    Layer     │
+└──────────────┘
+```
+
+### Service Implementation
+
+<Accordion title="BienesServices - Service Layer">
+  ```java
+  // services/BienesServices.java:9-39
+  public class BienesServices {
+    // Initialize factory and DAO
+    private DAOFactory fabrica = DAOFactory.getDAOFactory(1);
+    private BienesDAO objBienes = fabrica.getBienesDAO();
+    
+    // Service methods delegating to DAO
+    public int registrar(Bienes bean) {
+      return objBienes.save(bean);
+    }
+    
+    public int actualizar(Bienes bean) {
+      return objBienes.update(bean);
+    }
+    
+    public int eliminarPorId(int cod) {
+      return objBienes.delete(cod);
+    }
+    
+    public Bienes buscarPorId(int cod) {
+      return objBienes.findById(cod);
+    }
+    
+    public List<Bienes> listarTodos() {
+      return objBienes.listAll();
+    }
+    
+    public List<Bienes> listarBienesporCodigodeComptra(int cod) {
+      return objBienes.listarBienesporCodigodeComptra(cod);
+    }
+  }
+  ```
+  
+  Reference: `services/BienesServices.java:9-39`
+</Accordion>
+
+### Service Layer Responsibilities
+
+<CardGroup cols={2}>
+  <Card title="Business Logic" icon="brain">
+    Encapsulates business rules and validation logic separate from presentation and data access.
+  </Card>
+  
+  <Card title="Transaction Management" icon="arrows-rotate">
+    Coordinates multiple DAO calls within a single business transaction.
+  </Card>
+  
+  <Card title="Facade" icon="layer-group">
+    Provides simplified interface to complex subsystems (DAOs, factories).
+  </Card>
+  
+  <Card title="Reusability" icon="recycle">
+    Business logic can be reused across multiple controllers or endpoints.
+  </Card>
+</CardGroup>
+
+### All Service Classes
+
+- `BienesServices` (services/BienesServices.java:9)
+- `GuiaServices` (services/GuiaServices.java)
+- `ProveedorServices` (services/ProveedorServices.java)
+- `OperadorServices` (services/OperadorServices.java)
+- `InscripcionSUNARPServices` (services/InscripcionSUNARPServices.java)
+- `LoginServices` (services/LoginServices.java)
+
+## JSON Serialization with Gson
+
+The application uses Google's Gson library for converting Java objects to JSON format for AJAX endpoints.
+
+### Pattern Implementation
+
+<Accordion title="ServletBienesJSON - JSON Endpoint">
+  ```java
+  // controlador/ServletBienesJSON.java:20-49
+  @WebServlet("/ServletBienesJSON")
+  public class ServletBienesJSON extends HttpServlet {
+    
+    protected void service(HttpServletRequest request, 
+                          HttpServletResponse response) 
+                          throws ServletException, IOException {
+      // Get parameter from request
+      String cod = request.getParameter("codigo");
+      
+      // Fetch data using service layer
+      Bienes lista = new BienesServices().buscarPorId(Integer.parseInt(cod));
+      
+      // Create Gson object
+      Gson gson = new Gson();
+      
+      // Convert Java object to JSON string
+      String json = gson.toJson(lista);
+      
+      // Set response content type to JSON
+      response.setContentType("application/json;charset=UTF-8");
+      PrintWriter salida = response.getWriter();
+      salida.println(json);
+    }
+  }
+  ```
+  
+  Reference: `controlador/ServletBienesJSON.java:20-49`
+</Accordion>
+
+### JSON Response Example
+
+```json
+{
+  "codigo_bien": 1,
+  "descrip_bien": "Laptop HP Pavilion",
+  "cantidad_bien": 5,
+  "nom_provee": "TechSupplier SAC",
+  "fecha_llegada": "2026-03-01",
+  "codigoOrdendeCompra": 10
+}
+```
+
+## Additional Patterns
+
+### Template Method Pattern (JDBC Operations)
+
+<Accordion title="JDBC Template Pattern">
+  All DAO methods follow a consistent template for database operations:
+  
+  ```java
+  public int save(Entity bean) {
+    int salida = -1;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    try {
+      // 1. Get connection
+      cn = MySqlConexion.getConectar();
+      // 2. Prepare SQL
+      String sql = "insert into table values(...)";
+      // 3. Create statement
+      pstm = cn.prepareStatement(sql);
+      // 4. Set parameters
+      pstm.setString(1, bean.getField());
+      // 5. Execute
+      salida = pstm.executeUpdate();
+    } catch (SQLException e) {
+      e.printStackTrace();
+    } finally {
+      // 6. Clean up resources
+      try {
+        if(pstm != null) pstm.close();
+        if(cn != null) cn.close();
+      } catch (SQLException e2) {
+        e2.printStackTrace();
+      }
+    }
+    return salida;
+  }
+  ```
+  
+  This template ensures consistent error handling and resource management across all database operations.
+</Accordion>
+
+### Singleton Pattern (Database Connection)
+
+<Accordion title="MySqlConexion Utility">
+  ```java
+  // utils/MySqlConexion.java:7-28
+  public class MySqlConexion {
+    public static Connection getConectar() {
+      Connection cn = null;
+      try {
+        Class.forName("com.mysql.cj.jdbc.Driver");
+        String url = "jdbc:mysql://localhost:3306/gestionbienes?serverTimezone=UTC";
+        String user = "root";
+        String pass = "mysql";
+        cn = DriverManager.getConnection(url, user, pass);
+      } catch (ClassNotFoundException | SQLException e) {
+        e.printStackTrace();
+      }
+      return cn;
+    }
+  }
+  ```
+  
+  Reference: `utils/MySqlConexion.java:7-28`
+  
+  While not a true singleton (doesn't prevent multiple instances), the static method provides centralized connection management.
+</Accordion>
+
+## Pattern Benefits Summary
+
+<CardGroup cols={3}>
+  <Card title="Maintainability" icon="wrench">
+    Changes are localized to specific layers and classes.
+  </Card>
+  
+  <Card title="Testability" icon="flask">
+    Each layer can be tested independently with mock objects.
+  </Card>
+  
+  <Card title="Scalability" icon="arrow-up">
+    New features can be added without affecting existing code.
+  </Card>
+  
+  <Card title="Flexibility" icon="shuffle">
+    Easy to swap implementations (e.g., change database).
+  </Card>
+  
+  <Card title="Reusability" icon="recycle">
+    Components can be reused across different parts of the application.
+  </Card>
+  
+  <Card title="Separation of Concerns" icon="layer-group">
+    Each layer has a single, well-defined responsibility.
+  </Card>
+</CardGroup>
+
+## Best Practices Observed
+
+- **Interface-based programming**: DAOs are accessed through interfaces
+- **Factory creation**: Objects are created through factories, not direct instantiation
+- **Layered architecture**: Clear separation between presentation, business, and data layers
+- **Resource management**: Proper cleanup of database resources in finally blocks
+- **Consistent naming**: Clear naming conventions (MySql prefix for implementations)
+- **Annotation-based configuration**: Use of `@WebServlet` instead of XML configuration
+
+<Note>
+These patterns work together to create a robust, maintainable architecture. Understanding how they interact is key to effective development and maintenance of the system.
+</Note>

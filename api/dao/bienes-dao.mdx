@@ -1,0 +1,450 @@
+---
+title: 'BienesDAO'
+description: 'Data access layer for managing assets/goods inventory with purchase order tracking'
+---
+
+## Overview
+
+The `BienesDAO` interface and its MySQL implementation provide CRUD operations for managing **bienes** (assets/goods) in the inventory system. Each asset is linked to a supplier and purchase order, enabling complete traceability.
+
+### Interface
+
+**Package**: `com.bienes.interfaces`
+
+```java BienesDAO.java
+public interface BienesDAO {
+    public int save(Bienes bean);
+    public int update(Bienes bean);
+    public int delete(int cod);
+    public Bienes findById(int cod);
+    public List<Bienes> listAll();
+    public List<Bienes> listarBienesporCodigodeComptra(int cod);
+}
+```
+
+### Implementation
+
+**Package**: `com.bienes.dao`  
+**Class**: `MySqlBienesDAO`  
+**Location**: `com/bienes/dao/MySqlBienesDAO.java`
+
+## Database Schema
+
+### Table: `bienes`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `codigo_bien` | INT (PK, AUTO_INCREMENT) | Unique asset identifier |
+| `descrip_bien` | VARCHAR | Asset description |
+| `cantidad_bien` | INT | Quantity |
+| `nom_provee` | VARCHAR | Supplier name |
+| `fecha_llegada` | DATE | Arrival date |
+| `codigo_ordencompra` | INT (FK) | Purchase order reference |
+
+### Entity Mapping
+
+```java Bienes.java
+public class Bienes {
+    public int codigo_bien;
+    public String descrip_bien;
+    public int cantidad_bien;
+    public String nom_provee;
+    public Date fecha_llegada;
+    public int codigoOrdendeCompra;
+    
+    // Getters and setters...
+}
+```
+
+## Method Reference
+
+### save()
+
+Inserts a new asset record into the database.
+
+```java
+public int save(Bienes bean)
+```
+
+<ParamField path="bean" type="Bienes" required>
+  Asset object containing:
+  - `descrip_bien`: Asset description
+  - `cantidad_bien`: Quantity
+  - `nom_provee`: Supplier name
+  - `fecha_llegada`: Arrival date
+  - `codigoOrdendeCompra`: Purchase order code
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected (1 on success, -1 on error)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+INSERT INTO bienes 
+VALUES (null, ?, ?, ?, ?, ?)
+```
+
+**Parameters**:
+1. `descrip_bien` (String)
+2. `cantidad_bien` (int)
+3. `nom_provee` (String)
+4. `fecha_llegada` (Date)
+5. `codigo_ordencompra` (int)
+
+#### Implementation
+
+```java MySqlBienesDAO.java:17-48
+@Override
+public int save(Bienes bean) {
+    int salida = -1;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "insert into bienes values(null,?,?,?,?,?)";
+        pstm = cn.prepareStatement(sql);
+        pstm.setString(1, bean.getDescrip_bien());
+        pstm.setInt(2, bean.getCantidad_bien());
+        pstm.setString(3, bean.getNom_provee());
+        pstm.setDate(4, bean.getFecha_llegada());
+        pstm.setInt(5, bean.getCodigoOrdendeCompra());
+        salida = pstm.executeUpdate();
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return salida;
+}
+```
+
+---
+
+### update()
+
+Updates an existing asset record.
+
+```java
+public int update(Bienes bean)
+```
+
+<ParamField path="bean" type="Bienes" required>
+  Asset object with updated values, must include `codigo_bien` for identification
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected (1 on success, -1 on error)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+UPDATE bienes 
+SET descrip_bien=?, 
+    cantidad_bien=?, 
+    nom_provee=?, 
+    fecha_llegada=?, 
+    codigo_ordencompra=? 
+WHERE codigo_bien=?
+```
+
+**Parameters**:
+1. `descrip_bien` (String)
+2. `cantidad_bien` (int)
+3. `nom_provee` (String)
+4. `fecha_llegada` (Date)
+5. `codigo_ordencompra` (int)
+6. `codigo_bien` (int) - WHERE condition
+
+#### Implementation
+
+```java MySqlBienesDAO.java:51-84
+@Override
+public int update(Bienes bean) {
+    int salida = -1;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "update bienes set descrip_bien=?, cantidad_bien=?, nom_provee=?, fecha_llegada=?, " +
+                     "codigo_ordencompra=? where codigo_bien=?";
+        pstm = cn.prepareStatement(sql);
+        pstm.setString(1, bean.getDescrip_bien());
+        pstm.setInt(2, bean.getCantidad_bien());
+        pstm.setString(3, bean.getNom_provee());
+        pstm.setDate(4, bean.getFecha_llegada());
+        pstm.setInt(5, bean.getCodigoOrdendeCompra());
+        pstm.setInt(6, bean.getCodigo_bien());
+        salida = pstm.executeUpdate();
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return salida;
+}
+```
+
+---
+
+### delete()
+
+Deletes an asset record by its code.
+
+```java
+public int delete(int cod)
+```
+
+<ParamField path="cod" type="int" required>
+  Asset code (codigo_bien) to delete
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected (1 on success, -1 on error)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+DELETE FROM bienes WHERE codigo_bien=?
+```
+
+<Warning>
+This operation is permanent. Consider implementing soft deletes or archiving for audit purposes.
+</Warning>
+
+---
+
+### findById()
+
+Retrieves a single asset by its unique identifier.
+
+```java
+public Bienes findById(int cod)
+```
+
+<ParamField path="cod" type="int" required>
+  Asset code (codigo_bien) to retrieve
+</ParamField>
+
+<ResponseField name="return" type="Bienes">
+  Asset object if found, `null` otherwise
+</ResponseField>
+
+#### SQL Query
+
+```sql
+SELECT * FROM bienes WHERE codigo_bien=?
+```
+
+#### Implementation
+
+```java MySqlBienesDAO.java:117-158
+@Override
+public Bienes findById(int cod) {
+    Bienes bean = null;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    ResultSet rs = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "select * from bienes where codigo_bien=?";
+        pstm = cn.prepareStatement(sql);
+        pstm.setInt(1, cod);
+        rs = pstm.executeQuery();
+        if(rs.next()) {
+            bean = new Bienes();
+            bean.setCodigo_bien(rs.getInt(1));
+            bean.setDescrip_bien(rs.getString(2));
+            bean.setCantidad_bien(rs.getInt(3));
+            bean.setNom_provee(rs.getString(4));
+            bean.setFecha_llegada(rs.getDate(5));
+            bean.setCodigoOrdendeCompra(rs.getInt(6));
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(rs != null) rs.close();
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return bean;
+}
+```
+
+---
+
+### listAll()
+
+Retrieves all assets from the database.
+
+```java
+public List<Bienes> listAll()
+```
+
+<ResponseField name="return" type="List<Bienes>">
+  List of all asset records (empty list if none found)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+SELECT * FROM bienes
+```
+
+<Note>
+For large datasets, consider implementing pagination to improve performance.
+</Note>
+
+---
+
+### listarBienesporCodigodeComptra()
+
+Retrieves assets filtered by purchase order code (custom query with JOIN).
+
+```java
+public List<Bienes> listarBienesporCodigodeComptra(int cod)
+```
+
+<ParamField path="cod" type="int" required>
+  Purchase order code (codigo) from `grr-ordendecompra` table
+</ParamField>
+
+<ResponseField name="return" type="List<Bienes>">
+  List of assets associated with the specified purchase order
+</ResponseField>
+
+#### SQL Query
+
+```sql
+SELECT b.codigo_bien, 
+       b.descrip_bien, 
+       b.cantidad_bien, 
+       b.nom_provee, 
+       b.fecha_llegada, 
+       b.codigo_ordencompra 
+FROM bienes b 
+JOIN `grr-ordendecompra` a ON b.codigo_ordencompra = a.codigo 
+WHERE a.codigo=?
+```
+
+#### Implementation
+
+```java MySqlBienesDAO.java:211-249
+@Override
+public List<Bienes> listarBienesporCodigodeComptra(int cod) {
+    List<Bienes> lista = new ArrayList<Bienes>();
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    ResultSet rs = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "select b.codigo_bien, b.descrip_bien, b.cantidad_bien, b.nom_provee, " +
+                     "b.fecha_llegada, b.codigo_ordencompra from bienes b " +
+                     "join `grr-ordendecompra` a on b.codigo_ordencompra = a.codigo " +
+                     "where a.codigo=?";
+        pstm = cn.prepareStatement(sql);
+        pstm.setInt(1, cod);
+        rs = pstm.executeQuery();
+        while(rs.next()) {
+            Bienes Bien = new Bienes();
+            Bien.setCodigo_bien(rs.getInt(1));
+            Bien.setDescrip_bien(rs.getString(2));
+            Bien.setCantidad_bien(rs.getInt(3));
+            Bien.setNom_provee(rs.getString(4));
+            Bien.setFecha_llegada(rs.getDate(5));
+            Bien.setCodigoOrdendeCompra(rs.getInt(6));
+            lista.add(Bien);
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(rs != null) rs.close();
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return lista;
+}
+```
+
+## Usage Examples
+
+### Creating a New Asset
+
+```java
+// Obtain DAO instance
+DAOFactory factory = DAOFactory.getDAOFactory(DAOFactory.MYSQL);
+BienesDAO dao = factory.getBienesDAO();
+
+// Create asset object
+Bienes bien = new Bienes();
+bien.setDescrip_bien("Laptop Dell Latitude 5420");
+bien.setCantidad_bien(10);
+bien.setNom_provee("TechSupply S.A.");
+bien.setFecha_llegada(new Date(System.currentTimeMillis()));
+bien.setCodigoOrdendeCompra(123);
+
+// Save to database
+int result = dao.save(bien);
+if(result > 0) {
+    System.out.println("Asset saved successfully");
+}
+```
+
+### Retrieving Assets by Purchase Order
+
+```java
+BienesDAO dao = factory.getBienesDAO();
+List<Bienes> bienes = dao.listarBienesporCodigodeComptra(123);
+
+for(Bienes bien : bienes) {
+    System.out.println(bien.getDescrip_bien() + " - " + bien.getCantidad_bien());
+}
+```
+
+### Updating Asset Information
+
+```java
+BienesDAO dao = factory.getBienesDAO();
+Bienes bien = dao.findById(45);
+
+if(bien != null) {
+    bien.setCantidad_bien(bien.getCantidad_bien() + 5);
+    int result = dao.update(bien);
+    if(result > 0) {
+        System.out.println("Asset updated successfully");
+    }
+}
+```
+
+## Related Tables
+
+<Card title="grr-ordendecompra" icon="file-invoice">
+  Purchase order table. Join relationship: `bienes.codigo_ordencompra = grr-ordendecompra.codigo`
+</Card>
+
+## See Also
+
+- [GuiaDAO](/api/dao/guia-dao) - Purchase guide/order management
+- [ProveedorDAO](/api/dao/proveedor-dao) - Supplier information
+- [DAO Overview](/api/dao/overview) - Architecture patterns

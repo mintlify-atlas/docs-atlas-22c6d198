@@ -1,0 +1,423 @@
+---
+title: 'Operator Management'
+description: 'Manage system operators and personnel who interact with the asset management system'
+---
+
+## Overview
+
+The Operator Management (Operador) feature enables you to maintain a directory of personnel who operate, manage, or interact with organizational assets. This includes equipment operators, warehouse staff, asset managers, and other personnel responsible for asset handling and maintenance.
+
+<Info>
+  Operator records are stored in the `operador` database table. Each operator has contact information, location details, and status tracking for personnel management.
+</Info>
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Personnel Directory" icon="users">
+    Maintain a complete directory of operators and staff who handle organizational assets
+  </Card>
+  <Card title="Contact Management" icon="phone">
+    Store mobile numbers and location information for quick personnel communication
+  </Card>
+  <Card title="Asset Assignment" icon="user-tag">
+    Track which operators are responsible for specific assets or equipment
+  </Card>
+  <Card title="Status Tracking" icon="circle-check">
+    Monitor operator availability and employment status for scheduling and assignment
+  </Card>
+</CardGroup>
+
+## Registering a New Operator
+
+<Steps>
+  <Step title="Access Operator Management">
+    Navigate to the Operador page from the main menu. You'll see a table listing all registered operators.
+  </Step>
+  
+  <Step title="Open Registration Form">
+    Click the **Nuevo Operador** button to open the operator registration modal.
+  </Step>
+  
+  <Step title="Enter Operator Details">
+    Complete all required fields:
+    
+    <ParamField path="nombreOperador" type="string" required>
+      **Operator Name (Nombre Operador)**: Full name of the operator or personnel
+      - Must be 4-20 characters
+      - Only letters allowed (including Spanish characters)
+      - Include first and last name
+      - Example: "Juan Perez", "Maria Rodriguez"
+    </ParamField>
+    
+    <ParamField path="distritoOperador" type="string" required>
+      **District (Distrito)**: Geographic district where the operator is based
+      - Must be 4-20 characters (validation message says 3, but pattern enforces 4)
+      - Only letters allowed
+      - Example: "San Isidro", "Miraflores", "Callao"
+    </ParamField>
+    
+    <ParamField path="celularOperador" type="integer" required>
+      **Mobile Phone (Celular)**: Operator's mobile contact number
+      - Must be numeric
+      - Stored as integer
+      - No special characters or spaces
+      - Example: 987654321, 912345678
+    </ParamField>
+    
+    <ParamField path="estadoOperador" type="string" required>
+      **Status (Estado)**: Current employment or operational status
+      - Must be 4-20 characters (validation says 3, pattern enforces 4)
+      - Only letters allowed
+      - Common values: "Activo", "Inactivo", "Vacaciones", "Licencia"
+    </ParamField>
+  </Step>
+  
+  <Step title="Submit the Form">
+    Click **Grabar** to save the operator. The system will:
+    - Validate all fields meet requirements
+    - Insert the record with an auto-generated ID
+    - Display success confirmation
+    - Refresh the operator list
+  </Step>
+</Steps>
+
+## Field Reference
+
+Operators contain the following information:
+
+| Database Field | Display Name | Type | Description |
+|----------------|--------------|------|-------------|
+| `id_ope` | ID / Código | Integer | Auto-generated unique operator identifier |
+| `nom_ope` | Nombre Operador | String | Operator's full name (4-20 characters) |
+| `dist_ope` | Distrito | String | District/location (4-20 characters) |
+| `cel_ope` | Celular | Integer | Mobile phone number (numeric only) |
+| `estado_ope` | Estado | String | Employment status (4-20 characters) |
+
+## Editing an Operator
+
+<Steps>
+  <Step title="Locate the Operator">
+    Use the DataTable search functionality to find the operator by name, district, phone, or status.
+  </Step>
+  
+  <Step title="Open Edit Modal">
+    Click the green **Editar** button on the operator's row. The system loads current data via AJAX from `ServletOperadorJSON`.
+  </Step>
+  
+  <Step title="Modify Information">
+    Update any fields as needed:
+    - ID field is read-only and cannot be changed
+    - All validation rules continue to apply
+    - Name, district, and status must be alphabetic (4-20 characters)
+    - Mobile number must be numeric
+  </Step>
+  
+  <Step title="Save Changes">
+    Click **Grabar** to update the operator record. The system executes:
+    ```sql
+    UPDATE operador 
+    SET nom_ope=?, dist_ope=?, cel_ope=?, estado_ope=? 
+    WHERE id_ope=?
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  When editing, verify the mobile number is still current. Accurate contact information is essential for operational communication.
+</Note>
+
+## Deleting an Operator
+
+<Warning>
+  Before deleting an operator, verify they are not:
+  - Currently assigned to any assets
+  - Referenced in any active work orders or assignments
+  - Required for audit or historical records
+  
+  Deletion is permanent and cannot be undone.
+</Warning>
+
+<Steps>
+  <Step title="Select Operator">
+    Find the operator record in the table.
+  </Step>
+  
+  <Step title="Initiate Deletion">
+    Click the red **Eliminar** button on the operator's row.
+  </Step>
+  
+  <Step title="Confirm Deletion">
+    A confirmation modal appears asking "¿Desea eliminar?":
+    - Click **SI** to confirm deletion
+    - Click **NO** to cancel
+  </Step>
+  
+  <Step title="Complete Deletion">
+    The system removes the record:
+    ```sql
+    DELETE FROM operador WHERE id_ope=?
+    ```
+    The operator list automatically refreshes.
+  </Step>
+</Steps>
+
+## Viewing Operator Information
+
+The operator list displays all registered personnel in an interactive DataTable:
+
+### Table Columns
+- **Código**: Unique operator ID
+- **Nombre Operador**: Full name
+- **Distrito**: Location/district
+- **Celular**: Mobile phone number
+- **Estado**: Current status
+- **Actions**: Edit and delete buttons
+
+### DataTable Features
+- **Search**: Filter operators by any field
+- **Sort**: Click column headers to sort data
+- **Pagination**: Navigate through multiple pages
+- **Display Options**: Choose records per page (10, 25, 50, 100)
+
+## Validation Rules
+
+<Accordion title="Field Validation Patterns">
+  ### Name Validation (Nombre Operador)
+  - **Pattern**: `^[a-zA-ZñÑ\s\áéíóúÁÉÍÓÚ]{4,20}$`
+  - **Length**: 4-20 characters
+  - **Allowed**: Letters (uppercase, lowercase), Spanish characters (ñ, á, é, í, ó, ú), spaces
+  - **Error Message**: "Solo letras MIN:4 - MAX:20"
+  
+  ### District Validation (Distrito)
+  - **Pattern**: `^[a-zA-ZñÑ\s\áéíóúÁÉÍÓÚ]{4,20}$`
+  - **Length**: 4-20 characters (error message says MIN:3, but regex enforces 4)
+  - **Allowed**: Letters and Spanish characters, spaces
+  - **Error Message**: "Solo letras MIN:3 - MAX:20"
+  
+  ### Status Validation (Estado)
+  - **Pattern**: `^[a-zA-ZñÑ\s\áéíóúÁÉÍÓÚ]{4,20}$`
+  - **Length**: 4-20 characters (error message says MIN:3, but regex enforces 4)
+  - **Allowed**: Letters and Spanish characters, spaces
+  - **Error Message**: "Solo letras MIN:3 - MAX:20"
+  
+  ### Mobile Phone Validation (Celular)
+  - **Pattern**: `^\d+$`
+  - **Type**: Numeric only (stored as integer)
+  - **Format**: No spaces, dashes, or special characters
+  - **Error Message**: "Este campo debe ser numerico"
+  - **Note**: For Peruvian mobile numbers, typically 9 digits starting with 9
+</Accordion>
+
+## Business Rules
+
+<Accordion title="Operator Status Management">
+  While the system allows free-text status values, common organizational practices include:
+  
+  ### Active Operators
+  - **"Activo"**: Operator is currently active and available
+  - **"En Servicio"**: Operator is on duty
+  - **"Disponible"**: Operator is available for assignment
+  
+  ### Inactive/Unavailable
+  - **"Inactivo"**: Temporarily inactive
+  - **"Vacaciones"**: On vacation leave
+  - **"Licencia"**: On leave (medical, personal, etc.)
+  - **"Suspendido"**: Suspended from duties
+  
+  ### Terminated
+  - **"Retirado"**: No longer employed
+  - **"Finalizado"**: Contract ended
+  
+  Organizations can define status values that match their HR and operational policies.
+</Accordion>
+
+<Accordion title="Data Management">
+  ### Unique Identification
+  - Each operator receives an auto-increment ID (`id_ope`)
+  - IDs are unique and never reused
+  - IDs can be used for asset assignment tracking
+  
+  ### Contact Information
+  - Mobile numbers must be kept current
+  - District information helps with routing and logistics
+  - All fields are mandatory for complete records
+  
+  ### Privacy Considerations
+  - Operator data may be considered personal information
+  - Follow organizational data protection policies
+  - Restrict access to authorized personnel only
+  - Consider data retention policies for former operators
+</Accordion>
+
+## Database Operations
+
+The system performs these SQL operations:
+
+```sql
+-- Create new operator
+INSERT INTO operador VALUES(null, ?, ?, ?, ?)
+
+-- Update existing operator
+UPDATE operador 
+SET nom_ope=?, dist_ope=?, cel_ope=?, estado_ope=? 
+WHERE id_ope=?
+
+-- Delete operator
+DELETE FROM operador WHERE id_ope=?
+
+-- Find operator by ID
+SELECT * FROM operador WHERE id_ope=?
+
+-- List all operators
+SELECT * FROM operador
+```
+
+## Common Use Cases
+
+<Accordion title="Warehouse Operations">
+  Register warehouse personnel:
+  - **Name**: Full name of warehouse operator
+  - **District**: Warehouse location
+  - **Mobile**: For quick communication
+  - **Status**: Shift status (morning, afternoon, night)
+  
+  This enables tracking who received shipments, moved assets, or performed inventory counts.
+</Accordion>
+
+<Accordion title="Equipment Operators">
+  Track certified equipment operators:
+  - **Name**: Operator's full name
+  - **District**: Operating region
+  - **Mobile**: Emergency contact
+  - **Status**: Certification status or availability
+  
+  Useful for heavy machinery, vehicles, or specialized equipment requiring certified operators.
+</Accordion>
+
+<Accordion title="Maintenance Staff">
+  Manage maintenance personnel:
+  - **Name**: Technician or maintenance staff name
+  - **District**: Service area
+  - **Mobile**: Direct contact for maintenance issues
+  - **Status**: On-call, scheduled, or available
+  
+  Helps coordinate asset maintenance and repair activities.
+</Accordion>
+
+<Accordion title="Asset Custodians">
+  Track individuals responsible for assets:
+  - **Name**: Custodian or manager name
+  - **District**: Department or office location
+  - **Mobile**: Contact for asset questions
+  - **Status**: Active custodian status
+  
+  Establishes accountability for asset care and usage.
+</Accordion>
+
+## Integration Scenarios
+
+<Note>
+  While the current system doesn't show direct database relationships between operators and assets, organizations typically use operator information for:
+  
+  ### Asset Assignment
+  - Link assets to operators via separate assignment tables
+  - Track which operator has custody of each asset
+  - Record assignment and return dates
+  
+  ### Work Orders
+  - Assign maintenance tasks to specific operators
+  - Track operator performance and completed work
+  - Schedule operator availability
+  
+  ### Access Control
+  - Integrate with authentication systems
+  - Control which operators can access which features
+  - Audit operator actions in the system
+  
+  ### Reporting
+  - Generate reports by operator
+  - Track operator productivity
+  - Analyze district-wise resource allocation
+</Note>
+
+## Related Features
+
+<CardGroup cols={3}>
+  <Card title="Asset Management" href="/features/asset-management">
+    Manage assets that operators handle
+  </Card>
+  <Card title="Supplier Management" href="/features/supplier-management">
+    Similar contact management for suppliers
+  </Card>
+  <Card title="Purchase Orders" href="/features/purchase-orders">
+    Track procurement operators may handle
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Note>
+  ### Recommended Guidelines
+  
+  **During Onboarding**
+  - Register new operators as part of hiring process
+  - Verify mobile numbers are active and correct
+  - Set initial status to match employment start
+  - Document operator certifications or qualifications
+  
+  **Regular Maintenance**
+  - Review operator list monthly for accuracy
+  - Update mobile numbers when they change
+  - Adjust status based on schedules and availability
+  - Remove or inactivate operators who leave
+  
+  **For Operations**
+  - Use status field to show current availability
+  - Keep district information current for routing
+  - Maintain up-to-date contact information
+  - Consider adding shift or schedule information
+  
+  **Data Quality**
+  - Standardize name formatting
+  - Use consistent district names
+  - Validate mobile number format (9 digits for Peru)
+  - Define clear status value conventions
+</Note>
+
+## Security Considerations
+
+<Warning>
+  ### Access Control
+  - Operator management should be restricted to HR and management
+  - Protect personal information (names, mobile numbers)
+  - Audit who creates, modifies, or deletes operator records
+  - Consider separation of duties for sensitive operations
+  
+  ### Data Protection
+  - Mobile numbers are personal information
+  - Follow data protection regulations (e.g., GDPR if applicable)
+  - Implement appropriate retention policies
+  - Secure backup and storage of operator data
+</Warning>
+
+## Technical Implementation
+
+<Info>
+  **For Developers**: Operators are managed through:
+  - Entity: `com.bienes.entidad.Operador`
+  - DAO Interface: `com.bienes.interfaces.OperadorDAO`
+  - DAO Implementation: `com.bienes.dao.MySqlOperadorDAO`
+  - Servlet: `com.bienes.controlador.ServletOperador`
+  - Service: `com.bienes.services.OperadorServices`
+  - JSP View: `/operador.jsp`
+  - JSON API: `ServletOperadorJSON` (provides operator data for AJAX operations)
+  
+  The implementation follows the same patterns as other modules:
+  - Bootstrap 5 for UI components
+  - DataTables for table functionality
+  - Bootstrap Validator for client-side validation
+  - jQuery for AJAX interactions
+  
+  **Mobile Number Storage**: The `cel_ope` field is defined as `int` in the entity, which limits it to integer range. For production use, consider changing to `String` or `long` to support longer phone numbers and international formats.
+</Info>

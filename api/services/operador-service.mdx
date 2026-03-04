@@ -1,0 +1,415 @@
+---
+title: 'OperadorServices'
+description: 'Service layer for managing Operador (operator/logistics personnel) operations'
+---
+
+## Overview
+
+**Package:** `com.bienes.services`
+
+**Full Class Name:** `com.bienes.services.OperadorServices`
+
+The `OperadorServices` class provides business logic for managing operators or logistics personnel in the system. Operators are responsible for handling goods delivery, warehouse management, or other operational tasks in the asset management workflow.
+
+### Dependencies
+
+- **DAO Factory:** `DAOFactory.getDAOFactory(1)` - MySQL implementation
+- **DAO Interface:** `OperadorDAO`
+- **Entity:** `com.bienes.entidad.Operador`
+
+```java OperadorServices.java:11-12
+private DAOFactory fabrica = DAOFactory.getDAOFactory(1);
+private OperadorDAO objOperador = fabrica.getOperadorDAO();
+```
+
+---
+
+## Methods
+
+### registrarOpe
+
+Registers a new Operador (operator) in the system.
+
+<ParamField path="bean" type="Operador" required>
+  The Operador entity object containing operator information:
+  - `nom_ope` - Operator name
+  - `dist_ope` - District/location
+  - `cel_ope` - Cell phone number
+  - `estado_ope` - Status (active/inactive)
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected:
+  - `> 0` - Registration successful
+  - `0` or `< 0` - Registration failed
+</ResponseField>
+
+```java OperadorServices.java:14-16
+public int registrarOpe(Operador bean) {
+    return objOperador.saveOpe(bean);
+}
+```
+
+---
+
+### actualizarOpe
+
+Updates an existing Operador record.
+
+<ParamField path="bean" type="Operador" required>
+  The Operador entity object with updated information. Must include:
+  - `id_ope` - ID of the operator to update
+  - All other fields to be updated
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected:
+  - `> 0` - Update successful
+  - `0` or `< 0` - Update failed
+</ResponseField>
+
+```java OperadorServices.java:17-19
+public int actualizarOpe(Operador bean) {
+    return objOperador.updateOpe(bean);
+}
+```
+
+---
+
+### eliminarPorIdOpe
+
+Deletes an Operador by its ID.
+
+<ParamField path="codi" type="int" required>
+  The unique identifier (`id_ope`) of the Operador to delete
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected:
+  - `> 0` - Deletion successful
+  - `0` or `< 0` - Deletion failed
+</ResponseField>
+
+```java OperadorServices.java:20-22
+public int eliminarPorIdOpe(int codi) {
+    return objOperador.deleteOpe(codi);
+}
+```
+
+---
+
+### buscarPorIdOpe
+
+Retrieves an Operador by its ID.
+
+<ParamField path="codi" type="int" required>
+  The unique identifier (`id_ope`) of the Operador to retrieve
+</ParamField>
+
+<ResponseField name="return" type="Operador">
+  The Operador object if found, `null` otherwise. Contains:
+  - `id_ope` - Operator ID
+  - `nom_ope` - Operator name
+  - `dist_ope` - District/location
+  - `cel_ope` - Cell phone number
+  - `estado_ope` - Status
+</ResponseField>
+
+```java OperadorServices.java:23-25
+public Operador buscarPorIdOpe(int codi) {
+    return objOperador.findByIdOpe(codi);
+}
+```
+
+---
+
+### listarTodos
+
+Retrieves all Operador records from the database.
+
+<ResponseField name="return" type="List<Operador>">
+  A list containing all Operador objects in the system. Returns an empty list if no records exist.
+</ResponseField>
+
+```java OperadorServices.java:26-28
+public List<Operador> listarTodos() {
+    return objOperador.listAll();
+}
+```
+
+---
+
+## Usage Examples
+
+### Service Initialization
+
+Typical servlet initialization pattern:
+
+```java
+private OperadorServices servicio;
+
+public ServletOperador() {
+    super();
+    servicio = new OperadorServices();
+}
+```
+
+### Registering a New Operator
+
+```java
+String nombre = request.getParameter("nombreOperador");
+String distrito = request.getParameter("distritoOperador");
+String celular = request.getParameter("celularOperador");
+String estado = request.getParameter("estadoOperador");
+
+Operador bean = new Operador();
+bean.setNom_ope(nombre);
+bean.setDist_ope(distrito);
+bean.setCel_ope(Integer.parseInt(celular));
+bean.setEstado_ope(estado);
+
+int salida = servicio.registrarOpe(bean);
+if (salida > 0) {
+    request.setAttribute("MENSAJE", "Operador registrado correctamente");
+} else {
+    request.setAttribute("MENSAJE", "Error en el registro del Operador");
+}
+```
+
+### Updating an Existing Operator
+
+```java
+int idOpe = Integer.parseInt(request.getParameter("idope"));
+Operador bean = servicio.buscarPorIdOpe(idOpe);
+
+if (bean != null) {
+    bean.setNom_ope(request.getParameter("nombreOperador"));
+    bean.setDist_ope(request.getParameter("distritoOperador"));
+    bean.setCel_ope(Integer.parseInt(request.getParameter("celularOperador")));
+    bean.setEstado_ope(request.getParameter("estadoOperador"));
+    
+    int salida = servicio.actualizarOpe(bean);
+    if (salida > 0) {
+        request.setAttribute("MENSAJE", "Operador actualizado correctamente");
+    } else {
+        request.setAttribute("MENSAJE", "Error en la actualización");
+    }
+}
+```
+
+### Deleting an Operator
+
+```java
+int idOpe = Integer.parseInt(request.getParameter("codigoEliminar"));
+
+int salida = servicio.eliminarPorIdOpe(idOpe);
+if (salida > 0) {
+    request.setAttribute("MENSAJE", "Operador eliminado correctamente");
+} else {
+    request.setAttribute("MENSAJE", "Error en la eliminación");
+}
+```
+
+### Listing All Operators
+
+```java
+List<Operador> operadores = servicio.listarTodos();
+request.setAttribute("listarOperador", operadores);
+request.getRequestDispatcher("/operador.jsp").forward(request, response);
+```
+
+### Filtering Active Operators
+
+```java
+List<Operador> todosOperadores = servicio.listarTodos();
+List<Operador> operadoresActivos = new ArrayList<>();
+
+for (Operador op : todosOperadores) {
+    if ("ACTIVO".equals(op.getEstado_ope())) {
+        operadoresActivos.add(op);
+    }
+}
+
+request.setAttribute("operadoresActivos", operadoresActivos);
+```
+
+### Servlet Integration Pattern
+
+```java
+protected void service(HttpServletRequest request, HttpServletResponse response) 
+        throws ServletException, IOException {
+    String accion = request.getParameter("tipo");
+    
+    if (accion.equals("LISTAR")) {
+        listarOperadores(request, response);
+    } else if (accion.equals("REGISTRAR")) {
+        registrarOperador(request, response);
+    } else if (accion.equals("ELIMINAR")) {
+        eliminarOperador(request, response);
+    }
+}
+```
+
+---
+
+## Error Handling
+
+The service layer returns integer values for CUD operations:
+
+- **Success:** Return value `> 0` indicates the number of affected rows
+- **Failure:** Return value `<= 0` indicates operation failed
+
+### Common Error Scenarios
+
+1. **Invalid Cell Phone Number:** `cel_ope` must be a valid integer
+   ```java
+   try {
+       int celular = Integer.parseInt(celularStr);
+       bean.setCel_ope(celular);
+   } catch (NumberFormatException e) {
+       request.setAttribute("MENSAJE", "Número de celular inválido");
+       return;
+   }
+   ```
+
+2. **Duplicate Operator:** Database may have unique constraints on operator name or cell phone
+   ```java
+   int salida = servicio.registrarOpe(bean);
+   if (salida <= 0) {
+       request.setAttribute("MENSAJE", "El operador ya existe o datos duplicados");
+   }
+   ```
+
+3. **Entity Not Found:** When updating or deleting a non-existent operator
+   ```java
+   Operador bean = servicio.buscarPorIdOpe(idOpe);
+   if (bean == null) {
+       request.setAttribute("MENSAJE", "Operador no encontrado");
+       return;
+   }
+   ```
+
+4. **Invalid Status Value:** Ensure `estado_ope` contains valid values
+   ```java
+   if (!"ACTIVO".equals(estado) && !"INACTIVO".equals(estado)) {
+       request.setAttribute("MENSAJE", "Estado inválido");
+       return;
+   }
+   ```
+
+### Input Validation
+
+```java
+public boolean validarOperador(Operador bean) {
+    if (bean.getNom_ope() == null || bean.getNom_ope().trim().isEmpty()) {
+        return false;
+    }
+    if (bean.getCel_ope() <= 0 || String.valueOf(bean.getCel_ope()).length() != 9) {
+        return false;
+    }
+    if (bean.getDist_ope() == null || bean.getDist_ope().trim().isEmpty()) {
+        return false;
+    }
+    return true;
+}
+```
+
+---
+
+## Related Components
+
+### Data Access Layer
+
+- **[OperadorDAO](/api/dao/operador-dao)** - Data access interface
+- **[MySqlOperadorDAO](/api/dao/mysql-operador-dao)** - MySQL implementation
+
+### Entity Layer
+
+- **[Operador Entity](/api/entities/operador)** - Domain model
+
+### Related Services
+
+- **[BienesServices](/api/services/bienes-service)** - Operators may handle goods delivery
+- **[ProveedorServices](/api/services/proveedor-service)** - Similar structure for managing providers
+- **[LoginServices](/api/services/login-service)** - May authenticate operators as users
+
+### Presentation Layer
+
+- **ServletOperador** - Main servlet controller at `/ServletOperador`
+- **ServletOperadorJSON** - JSON API endpoint
+- **operador.jsp** - View layer for operator management
+
+---
+
+## Business Context
+
+### Operator Roles
+
+Operators in this system typically handle:
+
+1. **Goods Delivery:** Receiving and delivering assets
+2. **Warehouse Management:** Managing inventory and storage
+3. **Logistics Coordination:** Coordinating with providers and departments
+4. **Asset Tracking:** Recording asset movements and locations
+
+### Operator Workflow
+
+```
+1. Operador registered in system
+2. Assigned to specific district/location
+3. Handles goods when they arrive (fecha_llegada)
+4. Status tracked (ACTIVO/INACTIVO)
+5. Contact via cell phone for coordination
+```
+
+### Status Management
+
+Operator status should be managed based on:
+
+- **ACTIVO:** Currently working and available for assignments
+- **INACTIVO:** Not currently working (vacation, leave, terminated)
+
+```java
+// Only show active operators in forms
+List<Operador> operadoresActivos = servicio.listarTodos()
+    .stream()
+    .filter(op -> "ACTIVO".equals(op.getEstado_ope()))
+    .collect(Collectors.toList());
+```
+
+### District Assignment
+
+Operators are assigned to districts (`dist_ope`) for:
+
+- Geographic organization
+- Route optimization
+- Local knowledge and efficiency
+
+```java
+// Find operators by district
+public List<Operador> buscarPorDistrito(String distrito) {
+    return servicio.listarTodos()
+        .stream()
+        .filter(op -> distrito.equals(op.getDist_ope()))
+        .collect(Collectors.toList());
+}
+```
+
+### Contact Management
+
+The `cel_ope` field stores cell phone numbers for:
+
+- Emergency contact
+- Delivery coordination
+- Task assignment notifications
+
+```java
+// Format phone number for display
+public String formatearCelular(int celular) {
+    String cel = String.valueOf(celular);
+    if (cel.length() == 9) {
+        return cel.substring(0, 3) + " " + cel.substring(3, 6) + " " + cel.substring(6);
+    }
+    return cel;
+}
+```

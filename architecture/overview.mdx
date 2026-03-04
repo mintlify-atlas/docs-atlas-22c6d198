@@ -1,0 +1,314 @@
+---
+title: 'Architecture Overview'
+description: 'Comprehensive overview of the asset management system architecture'
+---
+
+## System Architecture
+
+The asset management system follows a layered architecture pattern that separates concerns and promotes maintainability. The application is built using Java Enterprise Edition technologies with a clear separation between presentation, business logic, and data access layers.
+
+### Architecture Layers
+
+```
+┌─────────────────────────────────────────┐
+│         Presentation Layer              │
+│   (JSP Views + HTML/JavaScript)         │
+└───────────────┬─────────────────────────┘
+                │
+                ▼
+┌─────────────────────────────────────────┐
+│          Controller Layer               │
+│      (Servlets + JSON Endpoints)        │
+└───────────────┬─────────────────────────┘
+                │
+                ▼
+┌─────────────────────────────────────────┐
+│         Service Layer                   │
+│    (Business Logic + Validation)        │
+└───────────────┬─────────────────────────┘
+                │
+                ▼
+┌─────────────────────────────────────────┐
+│          DAO Layer                      │
+│     (Data Access Interfaces)            │
+└───────────────┬─────────────────────────┘
+                │
+                ▼
+┌─────────────────────────────────────────┐
+│         Database Layer                  │
+│    (MySQL - gestionbienes)              │
+└─────────────────────────────────────────┘
+```
+
+<Info>
+The architecture promotes loose coupling through interfaces and factory patterns, making the system extensible and testable.
+</Info>
+
+## Technology Stack
+
+<CardGroup cols={2}>
+  <Card title="Backend" icon="java">
+    - Java SE 8+
+    - Java Servlets 3.1+
+    - JDBC for database connectivity
+  </Card>
+  
+  <Card title="Frontend" icon="code">
+    - JSP (JavaServer Pages)
+    - HTML5/CSS3
+    - JavaScript
+  </Card>
+  
+  <Card title="Database" icon="database">
+    - MySQL 5.7+
+    - JDBC Driver (mysql-connector-java-8.0.21)
+  </Card>
+  
+  <Card title="Libraries" icon="book">
+    - Gson 2.x (JSON serialization)
+    - Java Logging API
+  </Card>
+</CardGroup>
+
+## Package Structure
+
+The application follows a modular package structure under the base package `com.bienes`:
+
+<Accordion title="com.bienes.controlador">
+  Contains all servlet controllers that handle HTTP requests and responses. Servlets act as the entry point for web requests.
+  
+  **Key Classes:**
+  - `ServletBienes` - Main controller for asset operations
+  - `ServletBienesJSON` - JSON endpoint for asset data
+  - `ServletGuia` - Purchase order controller
+  - `ServletProveedor` - Supplier management
+  - `ServletOperador` - Operator management
+  - `ServletSunarp` - SUNARP registration controller
+  - `ServletLogin` - Authentication controller
+</Accordion>
+
+<Accordion title="com.bienes.services">
+  Service layer containing business logic and orchestration between controllers and DAOs.
+  
+  **Key Classes:**
+  - `BienesServices` - Asset business logic
+  - `GuiaServices` - Purchase order services
+  - `ProveedorServices` - Supplier services
+  - `OperadorServices` - Operator services
+  - `InscripcionSUNARPServices` - SUNARP registration services
+  - `LoginServices` - Authentication services
+</Accordion>
+
+<Accordion title="com.bienes.interfaces">
+  DAO interfaces defining data access contracts. This promotes abstraction and allows for multiple implementations.
+  
+  **Key Interfaces:**
+  - `BienesDAO`
+  - `GuiaDAO`
+  - `ProveedorDAO`
+  - `OperadorDAO`
+  - `InscripcionSUNARPDAO`
+  - `LoginDAO`
+</Accordion>
+
+<Accordion title="com.bienes.dao">
+  Concrete DAO implementations for MySQL database. All classes implement corresponding interfaces.
+  
+  **Key Classes:**
+  - `MySqlBienesDAO`
+  - `MySqlGuiaDAO`
+  - `MySqlProveedorDAO`
+  - `MySqlOperadorDAO`
+  - `MySqlInscripcionSUNARPDAO`
+  - `MySqlLoginDAO`
+</Accordion>
+
+<Accordion title="com.bienes.entidad">
+  Entity/model classes representing domain objects. These are Plain Old Java Objects (POJOs) that map to database tables.
+  
+  **Key Classes:**
+  - `Bienes` - Asset entity
+  - `GuiayOrdendeCompra` - Purchase order entity
+  - `Proveedor` - Supplier entity
+  - `Operador` - Operator entity
+  - `InscripcionSUNARP` - SUNARP registration entity
+  - `Usuario` - User entity
+  - `Menu` - Menu item entity
+  - `ActaConformidad` - Conformity act entity
+</Accordion>
+
+<Accordion title="com.bienes.fabrica">
+  Factory classes implementing the Factory pattern for DAO creation.
+  
+  **Key Classes:**
+  - `DAOFactory` - Abstract factory defining DAO creation methods
+  - `MySqlDAOFactory` - Concrete factory for MySQL DAOs
+</Accordion>
+
+<Accordion title="com.bienes.utils">
+  Utility classes providing common functionality.
+  
+  **Key Classes:**
+  - `MySqlConexion` - Database connection utility
+</Accordion>
+
+## Request Flow
+
+The typical request flow follows the MVC pattern:
+
+```java
+// 1. JSP View submits form
+<form action="ServletBienes" method="post">
+  <input name="tipo" value="REGISTRAR" />
+  <!-- form fields -->
+</form>
+
+// 2. Servlet Controller receives request
+@WebServlet("/ServletBienes")
+public class ServletBienes extends HttpServlet {
+  protected void service(HttpServletRequest request, 
+                        HttpServletResponse response) {
+    String accion = request.getParameter("tipo");
+    if(accion.equals("REGISTRAR")) {
+      registrarBienes(request, response);
+    }
+  }
+}
+
+// 3. Service Layer processes business logic
+public class BienesServices {
+  private DAOFactory fabrica = DAOFactory.getDAOFactory(1);
+  private BienesDAO objBienes = fabrica.getBienesDAO();
+  
+  public int registrar(Bienes bean) {
+    return objBienes.save(bean);
+  }
+}
+
+// 4. DAO Layer executes database operations
+public class MySqlBienesDAO implements BienesDAO {
+  public int save(Bienes bean) {
+    Connection cn = MySqlConexion.getConectar();
+    String sql = "insert into bienes values(null,?,?,?,?,?)";
+    // ... execute query
+  }
+}
+```
+
+<Note>
+Each layer has a specific responsibility and communicates only with adjacent layers, ensuring separation of concerns.
+</Note>
+
+## JSON Endpoints
+
+The application provides JSON endpoints for AJAX operations and API access:
+
+<CardGroup cols={2}>
+  <Card title="ServletBienesJSON" icon="brackets-curly">
+    **Endpoint:** `/ServletBienesJSON?codigo={id}`
+    
+    Returns asset details in JSON format using Gson serialization.
+  </Card>
+  
+  <Card title="ServletBienporCompraJSON" icon="brackets-curly">
+    **Endpoint:** `/ServletBienporCompraJSON?codigo={id}`
+    
+    Returns assets filtered by purchase order code.
+  </Card>
+  
+  <Card title="ServletGuiaJSON" icon="brackets-curly">
+    **Endpoint:** `/ServletGuiaJSON?codigo={id}`
+    
+    Returns purchase order details in JSON format.
+  </Card>
+  
+  <Card title="ServletGuiaListaJSON" icon="brackets-curly">
+    **Endpoint:** `/ServletGuiaListaJSON`
+    
+    Returns list of all purchase orders.
+  </Card>
+  
+  <Card title="ServletProveedorJSON" icon="brackets-curly">
+    **Endpoint:** `/ServletProveedorJSON?id={id}`
+    
+    Returns supplier details in JSON format.
+  </Card>
+  
+  <Card title="ServletOperadorJSON" icon="brackets-curly">
+    **Endpoint:** `/ServletOperadorJSON?id={id}`
+    
+    Returns operator details in JSON format.
+  </Card>
+  
+  <Card title="ServletSunarpJSON" icon="brackets-curly">
+    **Endpoint:** `/ServletSunarpJSON?codigo={id}`
+    
+    Returns SUNARP registration details.
+  </Card>
+</CardGroup>
+
+### JSON Response Example
+
+```java
+// ServletBienesJSON.java:34-46
+protected void service(HttpServletRequest request, 
+                       HttpServletResponse response) {
+  String cod = request.getParameter("codigo");
+  Bienes lista = new BienesServices().buscarPorId(Integer.parseInt(cod));
+  
+  Gson gson = new Gson();
+  String json = gson.toJson(lista);
+  
+  response.setContentType("application/json;charset=UTF-8");
+  PrintWriter salida = response.getWriter();
+  salida.println(json);
+}
+```
+
+## Database Configuration
+
+The application connects to MySQL using the `MySqlConexion` utility class:
+
+```java
+// MySqlConexion.java:9-27
+public static Connection getConectar() {
+  Connection cn = null;
+  try {
+    Class.forName("com.mysql.cj.jdbc.Driver");
+    String url = "jdbc:mysql://localhost:3306/gestionbienes?serverTimezone=UTC";
+    String user = "root";
+    String pass = "mysql";
+    cn = DriverManager.getConnection(url, user, pass);
+  } catch (ClassNotFoundException | SQLException e) {
+    e.printStackTrace();
+  }
+  return cn;
+}
+```
+
+<Note>
+Database credentials are currently hardcoded. In production, these should be externalized to configuration files or environment variables.
+</Note>
+
+## Key Features
+
+- **Modular Architecture**: Clear separation of concerns across layers
+- **Interface-Based Design**: DAOs use interfaces for flexibility
+- **Factory Pattern**: Supports multiple database implementations
+- **JSON API**: RESTful-style endpoints for AJAX operations
+- **MVC Pattern**: Clean separation of views, controllers, and models
+- **Connection Management**: Proper resource cleanup with try-finally blocks
+- **Authentication**: Login system with session management
+- **Menu System**: Dynamic menu generation based on user permissions
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Schema" icon="table" href="/architecture/database-schema">
+    Explore the database tables, relationships, and schema design
+  </Card>
+  
+  <Card title="Design Patterns" icon="diagram-project" href="/architecture/design-patterns">
+    Learn about the design patterns implemented in the system
+  </Card>
+</CardGroup>

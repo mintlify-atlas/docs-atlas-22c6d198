@@ -1,0 +1,459 @@
+---
+title: 'GuiaDAO'
+description: 'Data access layer for managing purchase guides and order information'
+---
+
+## Overview
+
+The `GuiaDAO` interface and its MySQL implementation provide CRUD operations for managing **guías y órdenes de compra** (purchase guides and orders). These records track purchases made from suppliers, including descriptions, quantities, and pricing.
+
+### Interface
+
+**Package**: `com.bienes.interfaces`
+
+```java GuiaDAO.java
+public interface GuiaDAO {
+    public List<GuiayOrdendeCompra> listAll();
+    public int save(GuiayOrdendeCompra bean);
+    public int update(GuiayOrdendeCompra bean);
+    public int delete(int cod);
+    public GuiayOrdendeCompra findById(int cod);
+}
+```
+
+### Implementation
+
+**Package**: `com.bienes.dao`  
+**Class**: `MySqlGuiaDAO`  
+**Location**: `com/bienes/dao/MySqlGuiaDAO.java`
+
+## Database Schema
+
+### Table: `grr-ordendecompra`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `codigo` | INT (PK, AUTO_INCREMENT) | Unique order identifier |
+| `proveedor` | VARCHAR | Supplier name |
+| `fecha_compra` | DATE | Purchase date |
+| `descripcion` | VARCHAR | Item description |
+| `cantidad` | VARCHAR | Quantity |
+| `precio` | DOUBLE | Price |
+
+<Note>
+The table name uses backticks in SQL queries due to the special character (hyphen) in the name: `` `grr-ordendecompra` ``
+</Note>
+
+### Entity Mapping
+
+```java GuiayOrdendeCompra.java
+public class GuiayOrdendeCompra {
+    public int codigoguiacompra;
+    public String nom_provee;
+    public Date fecha_compra;
+    public String descripcionguiacompra;
+    public String cantidadguiacompra;
+    public Double precioguiacompra;
+    
+    // Getters and setters...
+}
+```
+
+## Method Reference
+
+### listAll()
+
+Retrieves all purchase orders from the database.
+
+```java
+public List<GuiayOrdendeCompra> listAll()
+```
+
+<ResponseField name="return" type="List<GuiayOrdendeCompra>">
+  List of all purchase order records (empty list if none found)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+SELECT * FROM gestionbienes.`grr-ordendecompra`
+```
+
+#### Implementation
+
+```java MySqlGuiaDAO.java:18-63
+@Override
+public List<GuiayOrdendeCompra> listAll() {
+    List<GuiayOrdendeCompra> lista = new ArrayList<GuiayOrdendeCompra>();
+    GuiayOrdendeCompra bean = null;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    ResultSet rs = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "select * from gestionbienes.`grr-ordendecompra`";
+        pstm = cn.prepareStatement(sql);
+        rs = pstm.executeQuery();
+        while(rs.next()) {
+            bean = new GuiayOrdendeCompra();
+            bean.setCodigoguiacompra(rs.getInt(1));
+            bean.setNom_provee(rs.getString(2));
+            bean.setFecha_compra(rs.getDate(3));
+            bean.setDescripcionguiacompra(rs.getString(4));
+            bean.setCantidadguiacompra(rs.getString(5));
+            bean.setPrecioguiacompra(rs.getDouble(6));
+            lista.add(bean);
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(rs != null) rs.close();
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return lista;
+}
+```
+
+---
+
+### save()
+
+Inserts a new purchase order record into the database.
+
+```java
+public int save(GuiayOrdendeCompra bean)
+```
+
+<ParamField path="bean" type="GuiayOrdendeCompra" required>
+  Purchase order object containing:
+  - `nom_provee`: Supplier name
+  - `fecha_compra`: Purchase date
+  - `descripcionguiacompra`: Item description
+  - `cantidadguiacompra`: Quantity (stored as String)
+  - `precioguiacompra`: Price
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected (1 on success, -1 on error)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+INSERT INTO gestionbienes.`grr-ordendecompra` 
+VALUES (null, ?, ?, ?, ?, ?)
+```
+
+**Parameters**:
+1. `proveedor` (String)
+2. `fecha_compra` (Date)
+3. `descripcion` (String)
+4. `cantidad` (String)
+5. `precio` (Double)
+
+#### Implementation
+
+```java MySqlGuiaDAO.java:66-97
+@Override
+public int save(GuiayOrdendeCompra bean) {
+    int salida = -1;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "insert into gestionbienes.`grr-ordendecompra` values(null,?,?,?,?,?)";
+        pstm = cn.prepareStatement(sql);
+        pstm.setString(1, bean.getNom_provee());
+        pstm.setDate(2, bean.getFecha_compra());
+        pstm.setString(3, bean.getDescripcionguiacompra());
+        pstm.setString(4, bean.getCantidadguiacompra());
+        pstm.setDouble(5, bean.getPrecioguiacompra());
+        salida = pstm.executeUpdate();
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return salida;
+}
+```
+
+---
+
+### update()
+
+Updates an existing purchase order record.
+
+```java
+public int update(GuiayOrdendeCompra bean)
+```
+
+<ParamField path="bean" type="GuiayOrdendeCompra" required>
+  Purchase order object with updated values, must include `codigoguiacompra` for identification
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected (1 on success, -1 on error)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+UPDATE gestionbienes.`grr-ordendecompra` 
+SET proveedor=?, 
+    fecha_compra=?, 
+    descripcion=?, 
+    cantidad=?, 
+    precio=? 
+WHERE codigo=?
+```
+
+**Parameters**:
+1. `proveedor` (String)
+2. `fecha_compra` (Date)
+3. `descripcion` (String)
+4. `cantidad` (String)
+5. `precio` (Double)
+6. `codigo` (int) - WHERE condition
+
+#### Implementation
+
+```java MySqlGuiaDAO.java:100-132
+@Override
+public int update(GuiayOrdendeCompra bean) {
+    int salida = -1;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "update gestionbienes.`grr-ordendecompra` set proveedor=?, fecha_compra=?, descripcion=?, cantidad=?, precio=? where codigo=?";
+        pstm = cn.prepareStatement(sql);
+        pstm.setString(1, bean.getNom_provee());
+        pstm.setDate(2, bean.getFecha_compra());
+        pstm.setString(3, bean.getDescripcionguiacompra());
+        pstm.setString(4, bean.getCantidadguiacompra());
+        pstm.setDouble(5, bean.getPrecioguiacompra());
+        pstm.setInt(6, bean.getCodigoguiacompra());
+        salida = pstm.executeUpdate();
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return salida;
+}
+```
+
+---
+
+### delete()
+
+Deletes a purchase order record by its code.
+
+```java
+public int delete(int cod)
+```
+
+<ParamField path="cod" type="int" required>
+  Order code (codigo) to delete
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected (1 on success, -1 on error)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+DELETE FROM gestionbienes.`grr-ordendecompra` WHERE codigo=?
+```
+
+<Warning>
+Deleting a purchase order may affect related assets in the `bienes` table that reference this order code.
+</Warning>
+
+#### Implementation
+
+```java MySqlGuiaDAO.java:135-162
+@Override
+public int delete(int cod) {
+    int salida = -1;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "delete from gestionbienes.`grr-ordendecompra` where codigo=?";
+        pstm = cn.prepareStatement(sql);
+        pstm.setInt(1, cod);
+        salida = pstm.executeUpdate();
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return salida;
+}
+```
+
+---
+
+### findById()
+
+Retrieves a single purchase order by its unique identifier.
+
+```java
+public GuiayOrdendeCompra findById(int cod)
+```
+
+<ParamField path="cod" type="int" required>
+  Order code (codigo) to retrieve
+</ParamField>
+
+<ResponseField name="return" type="GuiayOrdendeCompra">
+  Purchase order object if found, `null` otherwise
+</ResponseField>
+
+#### SQL Query
+
+```sql
+SELECT * FROM gestionbienes.`grr-ordendecompra` WHERE codigo=?
+```
+
+#### Implementation
+
+```java MySqlGuiaDAO.java:165-206
+@Override
+public GuiayOrdendeCompra findById(int cod) {
+    GuiayOrdendeCompra bean = null;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    ResultSet rs = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "select * from gestionbienes.`grr-ordendecompra` where codigo=?";
+        pstm = cn.prepareStatement(sql);
+        pstm.setInt(1, cod);
+        rs = pstm.executeQuery();
+        if(rs.next()) {
+            bean = new GuiayOrdendeCompra();
+            bean.setCodigoguiacompra(rs.getInt(1));
+            bean.setNom_provee(rs.getString(2));
+            bean.setFecha_compra(rs.getDate(3));
+            bean.setDescripcionguiacompra(rs.getString(4));
+            bean.setCantidadguiacompra(rs.getString(5));
+            bean.setPrecioguiacompra(rs.getDouble(6));
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(rs != null) rs.close();
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return bean;
+}
+```
+
+## Usage Examples
+
+### Creating a Purchase Order
+
+```java
+// Obtain DAO instance
+DAOFactory factory = DAOFactory.getDAOFactory(DAOFactory.MYSQL);
+GuiaDAO dao = factory.getGuiaDAO();
+
+// Create order object
+GuiayOrdendeCompra orden = new GuiayOrdendeCompra();
+orden.setNom_provee("TechSupply S.A.");
+orden.setFecha_compra(new Date(System.currentTimeMillis()));
+orden.setDescripcionguiacompra("Laptops Dell Latitude 5420");
+orden.setCantidadguiacompra("10 unidades");
+orden.setPrecioguiacompra(25000.00);
+
+// Save to database
+int result = dao.save(orden);
+if(result > 0) {
+    System.out.println("Purchase order created successfully");
+}
+```
+
+### Retrieving All Orders
+
+```java
+GuiaDAO dao = factory.getGuiaDAO();
+List<GuiayOrdendeCompra> ordenes = dao.listAll();
+
+for(GuiayOrdendeCompra orden : ordenes) {
+    System.out.println("Order #" + orden.getCodigoguiacompra());
+    System.out.println("Supplier: " + orden.getNom_provee());
+    System.out.println("Total: $" + orden.getPrecioguiacompra());
+    System.out.println("---");
+}
+```
+
+### Updating Order Price
+
+```java
+GuiaDAO dao = factory.getGuiaDAO();
+GuiayOrdendeCompra orden = dao.findById(123);
+
+if(orden != null) {
+    orden.setPrecioguiacompra(orden.getPrecioguiacompra() * 1.10); // 10% increase
+    int result = dao.update(orden);
+    if(result > 0) {
+        System.out.println("Order price updated");
+    }
+}
+```
+
+## Data Considerations
+
+### Quantity Field
+
+<Note>
+The `cantidad` field is stored as `VARCHAR` instead of numeric type, allowing for values like "10 unidades" or "5 cajas". Validate and parse accordingly.
+</Note>
+
+### Table Naming
+
+The table name `` `grr-ordendecompra` `` requires backticks in SQL queries due to the hyphen character. This is handled automatically in all DAO methods.
+
+## Related DAOs
+
+<CardGroup cols={2}>
+  <Card title="BienesDAO" icon="box" href="/api/dao/bienes-dao">
+    Assets reference purchase orders via `codigo_ordencompra`
+  </Card>
+  <Card title="ProveedorDAO" icon="truck" href="/api/dao/proveedor-dao">
+    Supplier information referenced by `nom_provee`
+  </Card>
+</CardGroup>
+
+## See Also
+
+- [DAO Overview](/api/dao/overview) - Architecture patterns and connection management

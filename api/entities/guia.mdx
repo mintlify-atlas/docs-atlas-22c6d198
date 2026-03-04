@@ -1,0 +1,178 @@
+---
+title: "GuiayOrdendeCompra"
+description: "Entity class representing delivery guides and purchase orders"
+---
+
+## Overview
+
+The `GuiayOrdendeCompra` entity represents delivery guides and purchase orders in the system. It tracks purchase information including supplier, date, item description, quantity, and pricing.
+
+**Package:** `com.bienes.entidad`
+
+**Imports:**
+- `java.sql.Date`
+
+## Fields
+
+<ParamField path="codigoguiacompra" type="int">
+  Unique identifier for the delivery guide/purchase order
+</ParamField>
+
+<ParamField path="nom_provee" type="String">
+  Name of the supplier for this purchase order
+</ParamField>
+
+<ParamField path="fecha_compra" type="Date">
+  Date of the purchase (SQL Date type)
+</ParamField>
+
+<ParamField path="descripcionguiacompra" type="String">
+  Description of the items in the purchase order
+</ParamField>
+
+<ParamField path="cantidadguiacompra" type="String">
+  Quantity of items in the purchase order (stored as String)
+</ParamField>
+
+<ParamField path="precioguiacompra" type="Double">
+  Price of the items in the purchase order
+</ParamField>
+
+## Methods
+
+All fields have standard getter and setter methods following JavaBean conventions:
+
+- `getCodigoguiacompra()` / `setCodigoguiacompra(int)`
+- `getNom_provee()` / `setNom_provee(String)`
+- `getFecha_compra()` / `setFecha_compra(Date)`
+- `getDescripcionguiacompra()` / `setDescripcionguiacompra(String)`
+- `getCantidadguiacompra()` / `setCantidadguiacompra(String)`
+- `getPrecioguiacompra()` / `setPrecioguiacompra(Double)`
+
+## Entity Class
+
+```java
+package com.bienes.entidad;
+
+import java.sql.Date;
+
+public class GuiayOrdendeCompra {
+
+    public int codigoguiacompra;
+    public String nom_provee;
+    public Date fecha_compra;
+    public String descripcionguiacompra;
+    public String cantidadguiacompra;
+    public Double precioguiacompra;
+    
+    public int getCodigoguiacompra() {
+        return codigoguiacompra;
+    }
+    public void setCodigoguiacompra(int codigoguiacompra) {
+        this.codigoguiacompra = codigoguiacompra;
+    }
+    public String getNom_provee() {
+        return nom_provee;
+    }
+    public void setNom_provee(String nom_provee) {
+        this.nom_provee = nom_provee;
+    }
+    public Date getFecha_compra() {
+        return fecha_compra;
+    }
+    public void setFecha_compra(Date fecha_compra) {
+        this.fecha_compra = fecha_compra;
+    }
+    public String getDescripcionguiacompra() {
+        return descripcionguiacompra;
+    }
+    public void setDescripcionguiacompra(String descripcionguiacompra) {
+        this.descripcionguiacompra = descripcionguiacompra;
+    }
+    public String getCantidadguiacompra() {
+        return cantidadguiacompra;
+    }
+    public void setCantidadguiacompra(String cantidadguiacompra) {
+        this.cantidadguiacompra = cantidadguiacompra;
+    }
+    public Double getPrecioguiacompra() {
+        return precioguiacompra;
+    }
+    public void setPrecioguiacompra(Double precioguiacompra) {
+        this.precioguiacompra = precioguiacompra;
+    }
+}
+```
+
+## Usage Example
+
+### Creating a GuiayOrdendeCompra Instance
+
+```java
+import com.bienes.entidad.GuiayOrdendeCompra;
+import java.sql.Date;
+
+// Create a new purchase order
+GuiayOrdendeCompra guia = new GuiayOrdendeCompra();
+guia.setNom_provee("Tech Supplies S.A.");
+guia.setFecha_compra(Date.valueOf("2026-03-01"));
+guia.setDescripcionguiacompra("Laptops and accessories");
+guia.setCantidadguiacompra("15");
+guia.setPrecioguiacompra(45000.00);
+```
+
+### Using with DAO Layer
+
+```java
+import com.bienes.interfaces.GuiaDAO;
+import com.bienes.dao.MySqlGuiaDAO;
+
+// Initialize DAO
+GuiaDAO dao = new MySqlGuiaDAO();
+
+// Save a new purchase order
+int result = dao.save(guia);
+
+// Find by ID
+GuiayOrdendeCompra foundGuia = dao.findById(1);
+
+// Update purchase order
+foundGuia.setPrecioguiacompra(48000.00);
+dao.update(foundGuia);
+
+// List all purchase orders
+List<GuiayOrdendeCompra> allGuias = dao.listAll();
+
+// Delete a purchase order
+dao.delete(1);
+```
+
+## Related Entities
+
+<CardGroup cols={2}>
+  <Card title="Bienes" icon="box" href="/api/entities/bienes">
+    Assets reference this entity via the `codigoOrdendeCompra` field to link goods to their purchase orders
+  </Card>
+  <Card title="Proveedor" icon="truck" href="/api/entities/proveedor">
+    Suppliers are referenced via the `nom_provee` field
+  </Card>
+</CardGroup>
+
+## Database Table
+
+The entity maps to the `guiayordendecompra` table with the following structure:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| codigoguiacompra | INT | Primary key (auto-increment) |
+| nom_provee | VARCHAR | Supplier name |
+| fecha_compra | DATE | Purchase date |
+| descripcionguiacompra | VARCHAR | Item description |
+| cantidadguiacompra | VARCHAR | Quantity |
+| precioguiacompra | DOUBLE | Price |
+
+## Notes
+
+<Note>
+  The `cantidadguiacompra` field is stored as a `String` type rather than numeric. Consider the data type when performing calculations or validations.
+</Note>

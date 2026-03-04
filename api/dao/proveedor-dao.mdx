@@ -1,0 +1,446 @@
+---
+title: 'ProveedorDAO'
+description: 'Data access layer for managing supplier information with contact details and status tracking'
+---
+
+## Overview
+
+The `ProveedorDAO` interface and its MySQL implementation provide CRUD operations for managing **proveedores** (suppliers) in the system. Suppliers are essential entities linked to assets, purchase orders, and other business operations.
+
+### Interface
+
+**Package**: `com.bienes.interfaces`
+
+```java ProveedorDAO.java
+public interface ProveedorDAO {
+    public int savePro(Proveedor bean);
+    public int updatePro(Proveedor bean);
+    public int deletePro(int id);
+    public Proveedor findByIdPro(int id);
+    public List<Proveedor> listAll();
+}
+```
+
+### Implementation
+
+**Package**: `com.bienes.dao`  
+**Class**: `MySqlProveedorDAO`  
+**Location**: `com/bienes/dao/MySqlProveedorDAO.java`
+
+## Database Schema
+
+### Table: `proveedor`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id_prove` | INT (PK, AUTO_INCREMENT) | Unique supplier identifier |
+| `nom_prove` | VARCHAR | Supplier name/company |
+| `dist_prove` | VARCHAR | District/location |
+| `telf_prove` | VARCHAR | Phone number |
+| `estado_prove` | VARCHAR | Status (active/inactive) |
+
+### Entity Mapping
+
+```java Proveedor.java
+public class Proveedor {
+    public int id_prove;
+    public String nom_prove;
+    public String dist_prove;
+    public String telf_prove;
+    public String estado_prove;
+    
+    // Getters and setters...
+}
+```
+
+## Method Reference
+
+### savePro()
+
+Inserts a new supplier record into the database.
+
+```java
+public int savePro(Proveedor bean)
+```
+
+<ParamField path="bean" type="Proveedor" required>
+  Supplier object containing:
+  - `nom_prove`: Supplier name/company
+  - `dist_prove`: District or location
+  - `telf_prove`: Contact phone number
+  - `estado_prove`: Status (e.g., "Activo", "Inactivo")
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected (1 on success, -1 on error)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+INSERT INTO proveedor 
+VALUES (null, ?, ?, ?, ?)
+```
+
+**Parameters**:
+1. `nom_prove` (String)
+2. `dist_prove` (String)
+3. `telf_prove` (String)
+4. `estado_prove` (String)
+
+#### Implementation
+
+```java MySqlProveedorDAO.java:17-47
+@Override
+public int savePro(Proveedor bean) {
+    int salida = -1;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "insert into proveedor values(null,?,?,?,?)";
+        pstm = cn.prepareStatement(sql);
+        pstm.setString(1, bean.getNom_prove());
+        pstm.setString(2, bean.getDist_prove());
+        pstm.setString(3, bean.getTelf_prove());
+        pstm.setString(4, bean.getEstado_prove());
+        salida = pstm.executeUpdate();
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return salida;
+}
+```
+
+---
+
+### updatePro()
+
+Updates an existing supplier record.
+
+```java
+public int updatePro(Proveedor bean)
+```
+
+<ParamField path="bean" type="Proveedor" required>
+  Supplier object with updated values, must include `id_prove` for identification
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected (1 on success, -1 on error)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+UPDATE proveedor 
+SET nom_prove=?, 
+    dist_prove=?, 
+    telf_prove=?, 
+    estado_prove=? 
+WHERE id_prove=?
+```
+
+**Parameters**:
+1. `nom_prove` (String)
+2. `dist_prove` (String)
+3. `telf_prove` (String)
+4. `estado_prove` (String)
+5. `id_prove` (int) - WHERE condition
+
+#### Implementation
+
+```java MySqlProveedorDAO.java:50-82
+@Override
+public int updatePro(Proveedor bean) {
+    int salida = -1;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "update proveedor set nom_prove=?, dist_prove=?, telf_prove=?, estado_prove=? where id_prove=?";
+        pstm = cn.prepareStatement(sql);
+        pstm.setString(1, bean.getNom_prove());
+        pstm.setString(2, bean.getDist_prove());
+        pstm.setString(3, bean.getTelf_prove());
+        pstm.setString(4, bean.getEstado_prove());
+        pstm.setInt(5, bean.getId_prove());
+        salida = pstm.executeUpdate();
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return salida;
+}
+```
+
+---
+
+### deletePro()
+
+Deletes a supplier record by its ID.
+
+```java
+public int deletePro(int id)
+```
+
+<ParamField path="id" type="int" required>
+  Supplier ID (id_prove) to delete
+</ParamField>
+
+<ResponseField name="return" type="int">
+  Number of rows affected (1 on success, -1 on error)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+DELETE FROM proveedor WHERE id_prove=?
+```
+
+<Warning>
+Deleting a supplier may cause foreign key constraint violations if referenced by assets or purchase orders. Consider implementing soft deletes (status = "Inactivo") instead.
+</Warning>
+
+#### Implementation
+
+```java MySqlProveedorDAO.java:85-112
+@Override
+public int deletePro(int id) {
+    int salida = -1;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "delete from proveedor where id_prove=?";
+        pstm = cn.prepareStatement(sql);
+        pstm.setInt(1, id);
+        salida = pstm.executeUpdate();
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return salida;
+}
+```
+
+---
+
+### findByIdPro()
+
+Retrieves a single supplier by its unique identifier.
+
+```java
+public Proveedor findByIdPro(int id)
+```
+
+<ParamField path="id" type="int" required>
+  Supplier ID (id_prove) to retrieve
+</ParamField>
+
+<ResponseField name="return" type="Proveedor">
+  Supplier object if found, `null` otherwise
+</ResponseField>
+
+#### SQL Query
+
+```sql
+SELECT * FROM proveedor WHERE id_prove=?
+```
+
+#### Implementation
+
+```java MySqlProveedorDAO.java:115-157
+@Override
+public Proveedor findByIdPro(int id) {
+    Proveedor bean = null;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    ResultSet rs = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "select * from proveedor where id_prove=?";
+        pstm = cn.prepareStatement(sql);
+        pstm.setInt(1, id);
+        rs = pstm.executeQuery();
+        if(rs.next()) {
+            bean = new Proveedor();
+            bean.setId_prove(rs.getInt(1));
+            bean.setNom_prove(rs.getString(2));
+            bean.setDist_prove(rs.getString(3));
+            bean.setTelf_prove(rs.getString(4));
+            bean.setEstado_prove(rs.getString(5));
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(rs != null) rs.close();
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return bean;
+}
+```
+
+---
+
+### listAll()
+
+Retrieves all suppliers from the database.
+
+```java
+public List<Proveedor> listAll()
+```
+
+<ResponseField name="return" type="List<Proveedor>">
+  List of all supplier records (empty list if none found)
+</ResponseField>
+
+#### SQL Query
+
+```sql
+SELECT * FROM proveedor
+```
+
+#### Implementation
+
+```java MySqlProveedorDAO.java:160-206
+@Override
+public List<Proveedor> listAll() {
+    List<Proveedor> lista = new ArrayList<Proveedor>();
+    Proveedor bean = null;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    ResultSet rs = null;
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "select * from proveedor";
+        pstm = cn.prepareStatement(sql);
+        rs = pstm.executeQuery();
+        while(rs.next()) {
+            bean = new Proveedor();
+            bean.setId_prove(rs.getInt(1));
+            bean.setNom_prove(rs.getString(2));
+            bean.setDist_prove(rs.getString(3));
+            bean.setTelf_prove(rs.getString(4));
+            bean.setEstado_prove(rs.getString(5));
+            lista.add(bean);
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        try {
+            if(rs != null) rs.close();
+            if(pstm != null) pstm.close();
+            if(cn != null) cn.close();
+        } catch (SQLException e2) {
+            e2.printStackTrace();
+        }
+    }
+    return lista;
+}
+```
+
+## Usage Examples
+
+### Creating a New Supplier
+
+```java
+// Obtain DAO instance
+DAOFactory factory = DAOFactory.getDAOFactory(DAOFactory.MYSQL);
+ProveedorDAO dao = factory.getProveedorDAO();
+
+// Create supplier object
+Proveedor proveedor = new Proveedor();
+proveedor.setNom_prove("TechSupply S.A.");
+proveedor.setDist_prove("Lima");
+proveedor.setTelf_prove("987654321");
+proveedor.setEstado_prove("Activo");
+
+// Save to database
+int result = dao.savePro(proveedor);
+if(result > 0) {
+    System.out.println("Supplier created successfully");
+}
+```
+
+### Listing Active Suppliers
+
+```java
+ProveedorDAO dao = factory.getProveedorDAO();
+List<Proveedor> proveedores = dao.listAll();
+
+for(Proveedor p : proveedores) {
+    if("Activo".equals(p.getEstado_prove())) {
+        System.out.println(p.getNom_prove() + " - " + p.getTelf_prove());
+    }
+}
+```
+
+### Soft Delete (Deactivate Supplier)
+
+```java
+ProveedorDAO dao = factory.getProveedorDAO();
+Proveedor proveedor = dao.findByIdPro(15);
+
+if(proveedor != null) {
+    proveedor.setEstado_prove("Inactivo");
+    int result = dao.updatePro(proveedor);
+    if(result > 0) {
+        System.out.println("Supplier deactivated successfully");
+    }
+}
+```
+
+## Status Values
+
+Common status values used in `estado_prove`:
+
+| Status | Description |
+|--------|-------------|
+| `Activo` | Active supplier, available for orders |
+| `Inactivo` | Inactive/deactivated supplier |
+| `Suspendido` | Temporarily suspended |
+| `Bloqueado` | Blocked due to issues |
+
+<Note>
+Status values are stored as strings. Consider using an enum or lookup table for better data integrity.
+</Note>
+
+## Related DAOs
+
+<CardGroup cols={2}>
+  <Card title="BienesDAO" icon="box" href="/api/dao/bienes-dao">
+    Assets reference supplier name (nom_provee)
+  </Card>
+  <Card title="GuiaDAO" icon="file-invoice" href="/api/dao/guia-dao">
+    Purchase orders reference supplier name
+  </Card>
+</CardGroup>
+
+## See Also
+
+- [DAO Overview](/api/dao/overview) - Architecture patterns and best practices

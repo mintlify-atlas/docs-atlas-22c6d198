@@ -1,0 +1,473 @@
+---
+title: 'Installation'
+description: 'Complete installation guide for the Asset Management System'
+---
+
+## Prerequisites
+
+Before installing the Asset Management System, ensure you have the following components:
+
+<CardGroup cols={2}>
+  <Card title="Java Development Kit" icon="coffee">
+    JDK 8 or higher installed and JAVA_HOME configured
+  </Card>
+  
+  <Card title="MySQL Database" icon="database">
+    MySQL 5.7 or higher (MySQL 8.0 recommended)
+  </Card>
+  
+  <Card title="Servlet Container" icon="server">
+    Apache Tomcat 8.5+ or compatible Java EE server
+  </Card>
+  
+  <Card title="MySQL Connector" icon="plug">
+    MySQL Connector/J 8.0.21 or compatible JDBC driver
+  </Card>
+</CardGroup>
+
+### Verify Java Installation
+
+```bash
+java -version
+# Should output: java version "1.8.0" or higher
+
+javac -version
+# Should output: javac 1.8.0 or higher
+```
+
+<Note>
+  Ensure the JAVA_HOME environment variable points to your JDK installation directory.
+</Note>
+
+## Installation Process
+
+<Steps>
+  <Step title="Download the Application">
+    Obtain the application WAR file (`LP2_Proyecto_BIENES.war`) or source code from your repository.
+    
+    If building from source:
+    ```bash
+    # Clone the repository
+    git clone <repository-url>
+    cd LP2_Proyecto_BIENES
+    
+    # Build the project (if using Maven)
+    mvn clean package
+    ```
+  </Step>
+  
+  <Step title="Install MySQL Server">
+    Install MySQL Server if not already installed:
+    
+    **Linux (Ubuntu/Debian):**
+    ```bash
+    sudo apt update
+    sudo apt install mysql-server
+    sudo systemctl start mysql
+    sudo systemctl enable mysql
+    ```
+    
+    **macOS:**
+    ```bash
+    brew install mysql
+    brew services start mysql
+    ```
+    
+    **Windows:**
+    Download and install MySQL from [mysql.com](https://dev.mysql.com/downloads/mysql/)
+    
+    <Warning>
+      Ensure MySQL is running and accessible before proceeding to database setup.
+    </Warning>
+  </Step>
+  
+  <Step title="Create Database and Tables">
+    Connect to MySQL and create the application database:
+    
+    ```sql
+    # Connect to MySQL
+    mysql -u root -p
+    
+    # Create database
+    CREATE DATABASE gestionbienes CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+    USE gestionbienes;
+    ```
+    
+    Create the required tables:
+    
+    <Accordion title="Proveedor (Suppliers) Table">
+    ```sql
+    CREATE TABLE proveedor (
+      id_prove INT AUTO_INCREMENT PRIMARY KEY,
+      nom_prove VARCHAR(100) NOT NULL,
+      dist_prove VARCHAR(100),
+      telf_prove VARCHAR(20),
+      estado_prove VARCHAR(20),
+      INDEX idx_estado (estado_prove),
+      INDEX idx_nombre (nom_prove)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ```
+    </Accordion>
+    
+    <Accordion title="Bienes (Assets) Table">
+    ```sql
+    CREATE TABLE bienes (
+      codigo_bien INT AUTO_INCREMENT PRIMARY KEY,
+      descrip_bien VARCHAR(200) NOT NULL,
+      cantidad_bien INT NOT NULL,
+      nom_provee VARCHAR(100),
+      fecha_llegada DATE,
+      codigo_ordencompra INT,
+      INDEX idx_proveedor (nom_provee),
+      INDEX idx_fecha (fecha_llegada)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ```
+    </Accordion>
+    
+    <Accordion title="Guía y Orden de Compra (Purchase Orders) Table">
+    ```sql
+    CREATE TABLE `grr-ordendecompra` (
+      codigo INT AUTO_INCREMENT PRIMARY KEY,
+      nom_provee VARCHAR(100) NOT NULL,
+      fecha_compra DATE NOT NULL,
+      descripcionguiacompra VARCHAR(200),
+      cantidadguiacompra VARCHAR(50),
+      precioguiacompra DOUBLE,
+      INDEX idx_proveedor_guia (nom_provee),
+      INDEX idx_fecha_compra (fecha_compra)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ```
+    </Accordion>
+    
+    <Accordion title="Inscripción SUNARP Table">
+    ```sql
+    CREATE TABLE inscripcion_sunarp (
+      codigo_inscri INT AUTO_INCREMENT PRIMARY KEY,
+      descrip_bien VARCHAR(200) NOT NULL,
+      cantidad_bien INT NOT NULL,
+      precio_bien DOUBLE,
+      nom_provee VARCHAR(100),
+      fecha_llegada DATE,
+      INDEX idx_inscripcion_fecha (fecha_llegada)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ```
+    </Accordion>
+    
+    <Accordion title="Operador (Operators) Table">
+    ```sql
+    CREATE TABLE operador (
+      id_ope INT AUTO_INCREMENT PRIMARY KEY,
+      nom_ope VARCHAR(100) NOT NULL,
+      dist_ope VARCHAR(100),
+      cel_ope INT,
+      estado_ope VARCHAR(20),
+      INDEX idx_operador_estado (estado_ope),
+      INDEX idx_operador_nombre (nom_ope)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ```
+    </Accordion>
+    
+    <Accordion title="Usuario (Users) Table">
+    ```sql
+    CREATE TABLE usuario (
+      codigo INT AUTO_INCREMENT PRIMARY KEY,
+      nombre VARCHAR(100) NOT NULL,
+      login VARCHAR(50) UNIQUE NOT NULL,
+      password VARCHAR(100) NOT NULL,
+      estado VARCHAR(20),
+      INDEX idx_login (login)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    
+    -- Create default admin user (password: admin123)
+    INSERT INTO usuario (nombre, login, password, estado) 
+    VALUES ('Administrador', 'admin', 'admin123', 'ACTIVO');
+    ```
+    </Accordion>
+    
+    <Accordion title="Menu Table (for navigation)">
+    ```sql
+    CREATE TABLE menu (
+      codigo INT AUTO_INCREMENT PRIMARY KEY,
+      nombre VARCHAR(100) NOT NULL,
+      url VARCHAR(200) NOT NULL,
+      icon VARCHAR(100),
+      usuario_codigo INT,
+      FOREIGN KEY (usuario_codigo) REFERENCES usuario(codigo)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    
+    -- Insert default menu items for admin user
+    INSERT INTO menu (nombre, url, icon, usuario_codigo) VALUES
+    ('Bienes', 'ServletBienes?tipo=LISTAR', 'bx bx-box', 1),
+    ('Proveedores', 'ServletProveedor?tipo=LISTAR', 'bx bx-building', 1),
+    ('Guías y Compras', 'ServletGuia?tipo=LISTAR', 'bx bx-file', 1),
+    ('SUNARP', 'ServletSunarp?tipo=LISTAR', 'bx bx-stamp', 1),
+    ('Operadores', 'ServletOperador?tipo=LISTAR', 'bx bx-user', 1);
+    ```
+    </Accordion>
+  </Step>
+  
+  <Step title="Configure Database Connection">
+    Update the database connection settings in the application source code.
+    
+    Edit `src/main/java/com/bienes/utils/MySqlConexion.java`:
+    
+    ```java MySqlConexion.java
+    package com.bienes.utils;
+    
+    import java.sql.Connection;
+    import java.sql.DriverManager;
+    import java.sql.SQLException;
+    
+    public class MySqlConexion {
+        
+        public static Connection getConectar() {
+            Connection cn = null;
+            try {
+                String url, user, pass;
+                
+                // Load MySQL JDBC driver
+                Class.forName("com.mysql.cj.jdbc.Driver");
+                
+                // Configure your database connection
+                url = "jdbc:mysql://localhost:3306/gestionbienes?serverTimezone=UTC";
+                user = "root";           // Change to your MySQL username
+                pass = "mysql";          // Change to your MySQL password
+                
+                // Establish connection
+                cn = DriverManager.getConnection(url, user, pass);
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            return cn;
+        }
+    }
+    ```
+    
+    <Warning>
+      **Security Best Practice**: In production environments, never hardcode database credentials. Use environment variables, property files outside the WAR, or a connection pool with JNDI configuration.
+    </Warning>
+    
+    **Recommended Production Configuration:**
+    ```java
+    // Use environment variables
+    url = System.getenv("DB_URL");
+    user = System.getenv("DB_USER");
+    pass = System.getenv("DB_PASS");
+    ```
+  </Step>
+  
+  <Step title="Install MySQL Connector">
+    Add the MySQL Connector/J JDBC driver to your project:
+    
+    **If using the source code:**
+    
+    Download MySQL Connector/J from [MySQL Downloads](https://dev.mysql.com/downloads/connector/j/) and place `mysql-connector-java-8.0.21.jar` in:
+    - `src/main/webapp/WEB-INF/lib/` directory
+    
+    **If using Maven:**
+    ```xml pom.xml
+    <dependency>
+        <groupId>mysql</groupId>
+        <artifactId>mysql-connector-java</artifactId>
+        <version>8.0.21</version>
+    </dependency>
+    ```
+  </Step>
+  
+  <Step title="Install Apache Tomcat">
+    Download and install Apache Tomcat:
+    
+    **Linux/macOS:**
+    ```bash
+    # Download Tomcat 9
+    wget https://downloads.apache.org/tomcat/tomcat-9/v9.0.x/bin/apache-tomcat-9.0.x.tar.gz
+    tar -xzf apache-tomcat-9.0.x.tar.gz
+    sudo mv apache-tomcat-9.0.x /opt/tomcat
+    
+    # Set permissions
+    sudo chmod +x /opt/tomcat/bin/*.sh
+    ```
+    
+    **Windows:**
+    Download the Windows installer from [Apache Tomcat](https://tomcat.apache.org/download-90.cgi)
+    
+    <Info>
+      Default Tomcat ports: HTTP on 8080, HTTPS on 8443. Ensure these ports are available.
+    </Info>
+  </Step>
+  
+  <Step title="Deploy the Application">
+    Deploy the WAR file to Tomcat:
+    
+    **Method 1: Manual Deployment**
+    ```bash
+    # Copy WAR file to Tomcat webapps directory
+    cp LP2_Proyecto_BIENES.war /opt/tomcat/webapps/
+    
+    # Start Tomcat
+    /opt/tomcat/bin/startup.sh
+    ```
+    
+    **Method 2: Tomcat Manager**
+    1. Access Tomcat Manager at `http://localhost:8080/manager`
+    2. Use the "WAR file to deploy" section
+    3. Select your WAR file and click Deploy
+    
+    <Tip>
+      The application will auto-deploy when Tomcat detects the WAR file. Check logs at `/opt/tomcat/logs/catalina.out` for deployment status.
+    </Tip>
+  </Step>
+  
+  <Step title="Verify Installation">
+    Test the application:
+    
+    1. **Check Tomcat logs** for successful deployment:
+       ```bash
+       tail -f /opt/tomcat/logs/catalina.out
+       ```
+       Look for: `Deployment of web application archive ... has finished`
+    
+    2. **Access the application**:
+       ```
+       http://localhost:8080/LP2_Proyecto_BIENES/login.jsp
+       ```
+    
+    3. **Test database connectivity**:
+       - Log in with default credentials (admin/admin123)
+       - If login is successful, database connection is working
+    
+    <Note>
+      If you renamed the WAR file, the application URL will reflect that name. For example, `bienes.war` becomes `http://localhost:8080/bienes/`
+    </Note>
+  </Step>
+</Steps>
+
+## Post-Installation Configuration
+
+### Configure Application Context
+
+Optionally configure the application context in Tomcat:
+
+Create `/opt/tomcat/conf/Catalina/localhost/bienes.xml`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Context path="/bienes" docBase="LP2_Proyecto_BIENES">
+  <!-- Configure connection pool (optional but recommended) -->
+  <Resource name="jdbc/GestionBienesDB"
+            auth="Container"
+            type="javax.sql.DataSource"
+            maxTotal="100"
+            maxIdle="30"
+            maxWaitMillis="10000"
+            username="root"
+            password="mysql"
+            driverClassName="com.mysql.cj.jdbc.Driver"
+            url="jdbc:mysql://localhost:3306/gestionbienes?serverTimezone=UTC"/>
+</Context>
+```
+
+### Set Up Application Logging
+
+Configure logging for troubleshooting:
+
+```bash
+# Monitor application logs
+tail -f /opt/tomcat/logs/catalina.out
+
+# Check for errors
+grep -i error /opt/tomcat/logs/catalina.out
+```
+
+## Firewall Configuration
+
+If deploying on a server, configure firewall rules:
+
+```bash
+# Ubuntu/Debian with UFW
+sudo ufw allow 8080/tcp
+sudo ufw reload
+
+# CentOS/RHEL with firewalld
+sudo firewall-cmd --permanent --add-port=8080/tcp
+sudo firewall-cmd --reload
+```
+
+## Troubleshooting
+
+<Accordion title="Database Connection Failed">
+**Symptoms**: Error messages about database connection failures
+
+**Solutions**:
+1. Verify MySQL is running: `sudo systemctl status mysql`
+2. Check database credentials in `MySqlConexion.java`
+3. Ensure database `gestionbienes` exists
+4. Test connection: `mysql -u root -p -e "USE gestionbienes;"`
+5. Check MySQL is listening on port 3306: `netstat -tlnp | grep 3306`
+</Accordion>
+
+<Accordion title="Tomcat Won't Start">
+**Symptoms**: Tomcat fails to start or application doesn't deploy
+
+**Solutions**:
+1. Check Java is installed: `java -version`
+2. Verify JAVA_HOME is set: `echo $JAVA_HOME`
+3. Check port 8080 is available: `netstat -tlnp | grep 8080`
+4. Review Tomcat logs: `cat /opt/tomcat/logs/catalina.out`
+5. Verify file permissions on Tomcat directories
+</Accordion>
+
+<Accordion title="404 Error - Page Not Found">
+**Symptoms**: Application URL returns 404 error
+
+**Solutions**:
+1. Verify WAR file deployed successfully in `/opt/tomcat/webapps/`
+2. Check application name in URL matches WAR filename
+3. Look for deployment errors in logs
+4. Try accessing: `http://localhost:8080/manager/html` to see deployed apps
+5. Restart Tomcat: `/opt/tomcat/bin/shutdown.sh && /opt/tomcat/bin/startup.sh`
+</Accordion>
+
+<Accordion title="Login Page Loads But Can't Login">
+**Symptoms**: Login page displays but authentication fails
+
+**Solutions**:
+1. Verify `usuario` table has data: `SELECT * FROM gestionbienes.usuario;`
+2. Check `menu` table has entries for the user
+3. Verify login credentials (default: admin/admin123)
+4. Check application logs for authentication errors
+5. Ensure session management is working properly
+</Accordion>
+
+## Production Deployment Recommendations
+
+<Warning>
+  Before deploying to production, implement these security measures:
+</Warning>
+
+1. **Change default credentials** - Update the admin password immediately
+2. **Use HTTPS** - Configure SSL/TLS certificates for Tomcat
+3. **Externalize configuration** - Move database credentials to external properties
+4. **Set up database backups** - Implement regular backup schedule
+5. **Configure connection pooling** - Use JNDI datasources instead of direct connections
+6. **Restrict access** - Use firewall rules and network segmentation
+7. **Enable logging** - Configure comprehensive application logging
+8. **Monitor resources** - Set up monitoring for Tomcat and MySQL
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Learn how to use the system and track your first asset
+  </Card>
+  
+  <Card title="Back to Introduction" icon="book" href="/introduction">
+    Review system features and architecture
+  </Card>
+</CardGroup>
+
+<Tip>
+  For a quick start, proceed to the [Quickstart Guide](/quickstart) to learn how to log in and begin tracking assets.
+</Tip>

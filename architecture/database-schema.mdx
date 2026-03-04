@@ -1,0 +1,455 @@
+---
+title: 'Database Schema'
+description: 'Complete database schema documentation with tables, fields, and relationships'
+---
+
+## Database Overview
+
+The application uses a MySQL database named `gestionbienes` (Asset Management). The schema is designed to manage assets, suppliers, operators, purchase orders, and SUNARP property registrations.
+
+<Info>
+Database schema is inferred from SQL queries in DAO classes and entity field mappings.
+</Info>
+
+## Entity Relationship
+
+```
+┌──────────────────┐
+│   proveedor      │
+│  (Suppliers)     │
+└────────┬─────────┘
+         │ 1
+         │
+         │ N
+┌────────▼─────────────┐        ┌─────────────────────┐
+│ grr-ordendecompra    │        │    operador         │
+│  (Purchase Orders)   │        │   (Operators)       │
+└────────┬─────────────┘        └─────────────────────┘
+         │ 1
+         │
+         │ N
+┌────────▼─────────┐        ┌─────────────────────┐
+│    bienes        │        │ inscripcion_sunarp  │
+│   (Assets)       │        │ (SUNARP Registry)   │
+└──────────────────┘        └─────────────────────┘
+
+┌──────────────────┐        ┌─────────────────────┐
+│    acceso        │   1:N  │       menu          │
+│    (Users)       ├────────┤   (Menu Items)      │
+└──────────────────┘        └─────────────────────┘
+```
+
+## Core Tables
+
+### bienes (Assets)
+
+Stores information about physical assets managed by the system.
+
+<Accordion title="Table Structure">
+  | Column Name | Data Type | Constraints | Description |
+  |------------|-----------|-------------|-------------|
+  | codigo_bien | INT | PRIMARY KEY, AUTO_INCREMENT | Unique asset identifier |
+  | descrip_bien | VARCHAR | NOT NULL | Asset description |
+  | cantidad_bien | INT | NOT NULL | Quantity of assets |
+  | nom_provee | VARCHAR | NOT NULL | Supplier name |
+  | fecha_llegada | DATE | NOT NULL | Arrival/delivery date |
+  | codigo_ordencompra | INT | FOREIGN KEY | Reference to purchase order |
+</Accordion>
+
+<Accordion title="Entity Mapping">
+  ```java
+  // Bienes.java:7-12
+  public class Bienes {
+    public int codigo_bien;           // Primary key
+    public String descrip_bien;       // Asset description
+    public int cantidad_bien;         // Quantity
+    public String nom_provee;         // Supplier name
+    public Date fecha_llegada;        // Arrival date
+    public int codigoOrdendeCompra;   // FK to purchase order
+  }
+  ```
+</Accordion>
+
+<Accordion title="SQL Operations">
+  ```sql
+  -- Insert (MySqlBienesDAO.java:25)
+  INSERT INTO bienes VALUES(null, ?, ?, ?, ?, ?);
+  
+  -- Update (MySqlBienesDAO.java:59-60)
+  UPDATE bienes 
+  SET descrip_bien=?, cantidad_bien=?, nom_provee=?, 
+      fecha_llegada=?, codigo_ordencompra=? 
+  WHERE codigo_bien=?;
+  
+  -- Delete (MySqlBienesDAO.java:95)
+  DELETE FROM bienes WHERE codigo_bien=?;
+  
+  -- Select by ID (MySqlBienesDAO.java:126)
+  SELECT * FROM bienes WHERE codigo_bien=?;
+  
+  -- Select all (MySqlBienesDAO.java:172)
+  SELECT * FROM bienes;
+  
+  -- Select by purchase order (MySqlBienesDAO.java:218-219)
+  SELECT b.codigo_bien, b.descrip_bien, b.cantidad_bien, 
+         b.nom_provee, b.fecha_llegada, b.codigo_ordencompra 
+  FROM bienes b 
+  JOIN `grr-ordendecompra` a ON b.codigo_ordencompra = a.codigo 
+  WHERE a.codigo=?;
+  ```
+</Accordion>
+
+<Note>
+The `bienes` table has a foreign key relationship with `grr-ordendecompra` through `codigo_ordencompra`.
+</Note>
+
+### grr-ordendecompra (Purchase Orders)
+
+Manages purchase orders and guide documents for asset acquisition.
+
+<Accordion title="Table Structure">
+  | Column Name | Data Type | Constraints | Description |
+  |------------|-----------|-------------|-------------|
+  | codigo | INT | PRIMARY KEY, AUTO_INCREMENT | Purchase order code |
+  | proveedor | VARCHAR | NOT NULL | Supplier name |
+  | fecha_compra | DATE | NOT NULL | Purchase date |
+  | descripcion | VARCHAR | NOT NULL | Order description |
+  | cantidad | VARCHAR | NOT NULL | Quantity (stored as string) |
+  | precio | DOUBLE | NOT NULL | Order price |
+</Accordion>
+
+<Accordion title="Entity Mapping">
+  ```java
+  // GuiayOrdendeCompra.java:7-12
+  public class GuiayOrdendeCompra {
+    public int codigoguiacompra;         // Primary key
+    public String nom_provee;            // Supplier name
+    public Date fecha_compra;            // Purchase date
+    public String descripcionguiacompra; // Description
+    public String cantidadguiacompra;    // Quantity
+    public Double precioguiacompra;      // Price
+  }
+  ```
+</Accordion>
+
+<Accordion title="SQL Operations">
+  ```sql
+  -- Insert (MySqlGuiaDAO.java:74)
+  INSERT INTO gestionbienes.`grr-ordendecompra` 
+  VALUES(null, ?, ?, ?, ?, ?);
+  
+  -- Update (MySqlGuiaDAO.java:108)
+  UPDATE gestionbienes.`grr-ordendecompra` 
+  SET proveedor=?, fecha_compra=?, descripcion=?, 
+      cantidad=?, precio=? 
+  WHERE codigo=?;
+  
+  -- Delete (MySqlGuiaDAO.java:143)
+  DELETE FROM gestionbienes.`grr-ordendecompra` WHERE codigo=?;
+  
+  -- Select by ID (MySqlGuiaDAO.java:174)
+  SELECT * FROM gestionbienes.`grr-ordendecompra` WHERE codigo=?;
+  
+  -- Select all (MySqlGuiaDAO.java:28)
+  SELECT * FROM gestionbienes.`grr-ordendecompra`;
+  ```
+</Accordion>
+
+### proveedor (Suppliers)
+
+Stores supplier/vendor information.
+
+<Accordion title="Table Structure">
+  | Column Name | Data Type | Constraints | Description |
+  |------------|-----------|-------------|-------------|
+  | id_prove | INT | PRIMARY KEY, AUTO_INCREMENT | Supplier ID |
+  | nom_prove | VARCHAR | NOT NULL | Supplier name |
+  | dist_prove | VARCHAR | NOT NULL | District/location |
+  | telf_prove | VARCHAR | NOT NULL | Phone number |
+  | estado_prove | VARCHAR | NOT NULL | Status (active/inactive) |
+</Accordion>
+
+<Accordion title="Entity Mapping">
+  ```java
+  // Proveedor.java:5-9
+  public class Proveedor {
+    public int id_prove;        // Primary key
+    public String nom_prove;    // Supplier name
+    public String dist_prove;   // District
+    public String telf_prove;   // Phone
+    public String estado_prove; // Status
+  }
+  ```
+</Accordion>
+
+<Accordion title="SQL Operations">
+  ```sql
+  -- Insert (MySqlProveedorDAO.java:25)
+  INSERT INTO proveedor VALUES(null, ?, ?, ?, ?);
+  
+  -- Update (MySqlProveedorDAO.java:58)
+  UPDATE proveedor 
+  SET nom_prove=?, dist_prove=?, telf_prove=?, estado_prove=? 
+  WHERE id_prove=?;
+  
+  -- Delete (MySqlProveedorDAO.java:93)
+  DELETE FROM proveedor WHERE id_prove=?;
+  
+  -- Select by ID (MySqlProveedorDAO.java:124)
+  SELECT * FROM proveedor WHERE id_prove=?;
+  
+  -- Select all (MySqlProveedorDAO.java:170)
+  SELECT * FROM proveedor;
+  ```
+</Accordion>
+
+### operador (Operators)
+
+Manages operators or handlers responsible for assets.
+
+<Accordion title="Table Structure">
+  | Column Name | Data Type | Constraints | Description |
+  |------------|-----------|-------------|-------------|
+  | id_ope | INT | PRIMARY KEY, AUTO_INCREMENT | Operator ID |
+  | nom_ope | VARCHAR | NOT NULL | Operator name |
+  | dist_ope | VARCHAR | NOT NULL | District/location |
+  | cel_ope | INT | NOT NULL | Cell phone number |
+  | estado_ope | VARCHAR | NOT NULL | Status (active/inactive) |
+</Accordion>
+
+<Accordion title="Entity Mapping">
+  ```java
+  // Operador.java:5-9
+  public class Operador {
+    public int id_ope;        // Primary key
+    public String nom_ope;    // Operator name
+    public String dist_ope;   // District
+    public int cel_ope;       // Cell phone
+    public String estado_ope; // Status
+  }
+  ```
+</Accordion>
+
+### inscripcion_sunarp (SUNARP Registrations)
+
+Manages property registrations with SUNARP (Peru's National Superintendency of Public Registries).
+
+<Accordion title="Table Structure">
+  | Column Name | Data Type | Constraints | Description |
+  |------------|-----------|-------------|-------------|
+  | codigo_inscri | INT | PRIMARY KEY, AUTO_INCREMENT | Registration code |
+  | descripcion_bien | VARCHAR | NOT NULL | Asset description |
+  | cantidad_bien | INT | NOT NULL | Quantity |
+  | precio_bien | DOUBLE | NOT NULL | Asset price |
+  | nom_provee | VARCHAR | NOT NULL | Supplier name |
+  | fecha_llegada | DATE | NOT NULL | Arrival date |
+</Accordion>
+
+<Accordion title="Entity Mapping">
+  ```java
+  // InscripcionSUNARP.java:7-12
+  public class InscripcionSUNARP {
+    public int codigo_inscri;      // Primary key
+    public String descrip_bien;    // Asset description
+    public int cantidad_bien;      // Quantity
+    public double precio_bien;     // Price
+    public String nom_provee;      // Supplier name
+    public Date fecha_llegada;     // Arrival date
+  }
+  ```
+</Accordion>
+
+<Accordion title="SQL Operations">
+  ```sql
+  -- Insert (MySqlInscripcionSUNARPDAO.java:25)
+  INSERT INTO inscripcion_sunarp VALUES(null, ?, ?, ?, ?, ?);
+  
+  -- Update (MySqlInscripcionSUNARPDAO.java:60)
+  UPDATE inscripcion_sunarp 
+  SET descripcion_bien=?, cantidad_bien=?, precio_bien=?, 
+      nom_provee=?, fecha_llegada=? 
+  WHERE codigo_inscri=?;
+  
+  -- Delete (MySqlInscripcionSUNARPDAO.java:95)
+  DELETE FROM inscripcion_sunarp WHERE codigo_inscri=?;
+  
+  -- Select by ID (MySqlInscripcionSUNARPDAO.java:126)
+  SELECT * FROM inscripcion_sunarp WHERE codigo_inscri=?;
+  
+  -- Select all (MySqlInscripcionSUNARPDAO.java:172)
+  SELECT * FROM inscripcion_sunarp;
+  ```
+</Accordion>
+
+## Authentication Tables
+
+### acceso (Users/Access)
+
+Stores user authentication credentials.
+
+<Accordion title="Table Structure">
+  | Column Name | Data Type | Constraints | Description |
+  |------------|-----------|-------------|-------------|
+  | id_acceso | INT | PRIMARY KEY, AUTO_INCREMENT | User ID |
+  | login_acceso | VARCHAR | UNIQUE, NOT NULL | Login username |
+  | pass_acceso | VARCHAR | NOT NULL | Password (should be hashed) |
+</Accordion>
+
+<Accordion title="Entity Mapping">
+  ```java
+  // Usuario.java:4-5
+  public class Usuario {
+    private int codigo;         // User ID
+    private String nombres;     // First name
+    private String apellidos;   // Last name
+    private String login;       // Login username
+    private String clave;       // Password
+  }
+  ```
+</Accordion>
+
+<Accordion title="SQL Operations">
+  ```sql
+  -- Login authentication (MySqlLoginDAO.java:28)
+  SELECT id_acceso, login_acceso, pass_acceso 
+  FROM acceso 
+  WHERE login_acceso=? AND pass_acceso=?;
+  
+  -- Get user menu options (MySqlLoginDAO.java:73)
+  SELECT a.id_acceso, m.descrip_menu, m.url_menu, m.icon_menu 
+  FROM acceso a 
+  JOIN menu m ON a.id_acceso = m.id_acceso 
+  WHERE a.id_acceso=?;
+  ```
+</Accordion>
+
+<Note>
+Passwords appear to be stored in plain text. In production, implement password hashing using BCrypt or similar algorithms.
+</Note>
+
+### menu (Menu Items)
+
+Stores menu items accessible to users based on their access level.
+
+<Accordion title="Table Structure">
+  | Column Name | Data Type | Constraints | Description |
+  |------------|-----------|-------------|-------------|
+  | id_menu | INT | PRIMARY KEY, AUTO_INCREMENT | Menu item ID |
+  | id_acceso | INT | FOREIGN KEY | Reference to user access |
+  | descrip_menu | VARCHAR | NOT NULL | Menu description |
+  | url_menu | VARCHAR | NOT NULL | Menu URL/link |
+  | icon_menu | VARCHAR | NOT NULL | Icon class/name |
+</Accordion>
+
+<Accordion title="Entity Mapping">
+  ```java
+  // Menu.java (inferred from DAO usage)
+  public class Menu {
+    private int codigo;      // Menu ID
+    private String nombre;   // Menu description
+    private String url;      // Menu URL
+    private String icon;     // Icon class
+  }
+  ```
+</Accordion>
+
+## Relationships
+
+### Foreign Key Constraints
+
+<CardGroup cols={2}>
+  <Card title="bienes → grr-ordendecompra" icon="link">
+    **Relationship:** Many-to-One
+    
+    **Foreign Key:** `bienes.codigo_ordencompra`
+    
+    **References:** `grr-ordendecompra.codigo`
+    
+    Multiple assets can belong to one purchase order.
+  </Card>
+  
+  <Card title="menu → acceso" icon="link">
+    **Relationship:** Many-to-One
+    
+    **Foreign Key:** `menu.id_acceso`
+    
+    **References:** `acceso.id_acceso`
+    
+    Multiple menu items can be assigned to one user.
+  </Card>
+</CardGroup>
+
+### Implicit Relationships
+
+<Info>
+The following relationships exist through shared field values but are not enforced by database constraints:
+</Info>
+
+- **bienes.nom_provee** references supplier names from `proveedor.nom_prove`
+- **grr-ordendecompra.proveedor** references supplier names from `proveedor.nom_prove`
+- **inscripcion_sunarp.nom_provee** references supplier names from `proveedor.nom_prove`
+
+<Note>
+Consider adding proper foreign key constraints to enforce referential integrity for supplier relationships.
+</Note>
+
+## Database Connection
+
+The application uses JDBC for database connectivity:
+
+```java
+// MySqlConexion.java:9-27
+public static Connection getConectar() {
+  Connection cn = null;
+  try {
+    Class.forName("com.mysql.cj.jdbc.Driver");
+    String url = "jdbc:mysql://localhost:3306/gestionbienes?serverTimezone=UTC";
+    String user = "root";
+    String pass = "mysql";
+    cn = DriverManager.getConnection(url, user, pass);
+  } catch (ClassNotFoundException | SQLException e) {
+    e.printStackTrace();
+  }
+  return cn;
+}
+```
+
+**Configuration:**
+- **Database:** `gestionbienes`
+- **Host:** `localhost:3306`
+- **Driver:** `com.mysql.cj.jdbc.Driver`
+- **Timezone:** UTC
+
+## Best Practices & Recommendations
+
+<CardGroup cols={2}>
+  <Card title="Add Foreign Keys" icon="key">
+    Implement foreign key constraints for supplier name references to ensure referential integrity.
+  </Card>
+  
+  <Card title="Index Optimization" icon="magnifying-glass">
+    Add indexes on frequently queried fields like `codigo_ordencompra` in the `bienes` table.
+  </Card>
+  
+  <Card title="Password Security" icon="shield">
+    Implement password hashing in the `acceso` table instead of storing plain text passwords.
+  </Card>
+  
+  <Card title="Data Types" icon="database">
+    Consider changing `cantidad` in purchase orders from VARCHAR to INT for proper numeric operations.
+  </Card>
+</CardGroup>
+
+## Schema Evolution
+
+When modifying the schema:
+
+1. Update the corresponding entity class in `com.bienes.entidad`
+2. Modify SQL queries in the relevant DAO class
+3. Update the interface if method signatures change
+4. Test all CRUD operations thoroughly
+5. Consider database migration scripts for production
+
+<Note>
+Always backup the database before applying schema changes in production environments.
+</Note>

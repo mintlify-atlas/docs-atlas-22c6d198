@@ -1,0 +1,178 @@
+---
+title: 'Introduction'
+description: 'Welcome to the Asset Management System - A comprehensive solution for tracking and managing organizational assets'
+---
+
+## Overview
+
+The Asset Management System (Sistema de Gestión de Bienes) is a Java-based web application designed to streamline the tracking, management, and registration of organizational assets. Built on enterprise-grade technology, it provides a centralized platform for managing the complete lifecycle of assets from acquisition to registration.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Asset Tracking" icon="box">
+    Manage and track all organizational assets with detailed information including descriptions, quantities, arrival dates, and purchase order associations.
+  </Card>
+  
+  <Card title="Supplier Management" icon="building">
+    Maintain a complete database of suppliers with contact information, location details, and status tracking for better vendor relationships.
+  </Card>
+  
+  <Card title="Purchase Orders" icon="file-invoice">
+    Create and manage purchase orders (Guías y Órdenes de Compra) with full tracking of items, quantities, prices, and delivery dates.
+  </Card>
+  
+  <Card title="SUNARP Registration" icon="stamp">
+    Handle asset registration with Peru's SUNARP (Superintendencia Nacional de los Registros Públicos) for legal compliance and documentation.
+  </Card>
+  
+  <Card title="Operator Management" icon="users">
+    Register and manage operators who handle assets, including contact information and geographic assignment.
+  </Card>
+  
+  <Card title="User Authentication" icon="lock">
+    Secure login system with role-based access control to protect sensitive asset information.
+  </Card>
+</CardGroup>
+
+## Who Should Use This System
+
+This system is designed for:
+
+- **IT Administrators** - Deploy and maintain the application infrastructure
+- **Asset Managers** - Track and manage organizational assets
+- **Procurement Teams** - Handle supplier relationships and purchase orders
+- **Warehouse Managers** - Monitor asset arrivals and inventory
+- **Compliance Officers** - Ensure proper asset registration and documentation
+
+## System Architecture
+
+The application follows a modern Java web architecture:
+
+<Steps>
+  <Step title="Presentation Layer">
+    JSP pages with Bootstrap 5 for a responsive user interface
+  </Step>
+  
+  <Step title="Controller Layer">
+    Java Servlets handling HTTP requests and business logic orchestration
+  </Step>
+  
+  <Step title="Service Layer">
+    Business logic implementation for each module (Assets, Suppliers, Operators, etc.)
+  </Step>
+  
+  <Step title="Data Access Layer">
+    DAO pattern with MySQL database connectivity
+  </Step>
+</Steps>
+
+## System Requirements
+
+### Server Requirements
+
+- **Java**: JDK 8 or higher
+- **Servlet Container**: Apache Tomcat 8.5+ or compatible Java EE container
+- **Database**: MySQL 5.7 or higher (tested with MySQL 8.0)
+- **Memory**: Minimum 512 MB RAM (1 GB recommended)
+- **Storage**: 100 MB for application + database storage needs
+
+### Client Requirements
+
+- **Browser**: Modern web browser (Chrome, Firefox, Edge, Safari)
+- **JavaScript**: Enabled for full functionality
+- **Screen Resolution**: Minimum 1024x768
+
+<Note>
+  The application uses Bootstrap 5 and DataTables for a responsive interface that works on desktop and tablet devices.
+</Note>
+
+## Core Modules
+
+The system is organized into five main functional modules:
+
+### 1. Assets (Bienes)
+
+Track all organizational assets with:
+- Unique asset codes
+- Detailed descriptions
+- Quantity management
+- Supplier associations
+- Arrival date tracking
+- Purchase order linkage
+
+### 2. Suppliers (Proveedores)
+
+Manage supplier information:
+- Supplier identification
+- Company names
+- District/location data
+- Contact telephone numbers
+- Active/inactive status
+
+### 3. Purchase Orders (Guías y Órdenes de Compra)
+
+Handle procurement documentation:
+- Purchase order codes
+- Supplier references
+- Purchase dates
+- Item descriptions
+- Quantities and pricing
+
+### 4. SUNARP Registration (Inscripción SUNARP)
+
+Manage legal asset registration:
+- Registration codes
+- Asset details for registration
+- Valuation information
+- Registration status tracking
+
+### 5. Operators (Operadores)
+
+Track personnel handling assets:
+- Operator identification
+- Full names
+- District assignments
+- Mobile contact numbers
+- Status management
+
+## Database Schema
+
+<Info>
+  The application uses the **gestionbienes** MySQL database with tables for each module: `bienes`, `proveedor`, `grr-ordendecompra`, `inscripcion_sunarp`, and `operador`.
+</Info>
+
+## Technology Stack
+
+```java
+// Core Technologies
+- Java 8+
+- Java Servlets (Servlet 4.0)
+- JSP (JavaServer Pages)
+- JDBC (MySQL Connector)
+- Bootstrap 5
+- jQuery 3.5+
+- DataTables 1.11+
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Follow our step-by-step guide to install and configure the system
+  </Card>
+  
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get up and running quickly with your first asset tracked
+  </Card>
+</CardGroup>
+
+## Support and Resources
+
+<Warning>
+  This system is designed for internal organizational use. Ensure proper database backups and user access controls are in place before production deployment.
+</Warning>
+
+For installation instructions, proceed to the [Installation Guide](/installation).
+
+To start using the system immediately, see the [Quickstart Guide](/quickstart).

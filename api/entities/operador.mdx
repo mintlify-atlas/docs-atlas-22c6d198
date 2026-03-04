@@ -1,0 +1,184 @@
+---
+title: "Operador"
+description: "Entity class representing operators in the system"
+---
+
+## Overview
+
+The `Operador` entity represents operators or handlers who manage assets and operations in the system. It stores operator identification, contact information, location, and status.
+
+**Package:** `com.bienes.entidad`
+
+**Imports:** None
+
+## Fields
+
+<ParamField path="id_ope" type="int">
+  Unique identifier for the operator
+</ParamField>
+
+<ParamField path="nom_ope" type="String">
+  Name of the operator
+</ParamField>
+
+<ParamField path="dist_ope" type="String">
+  District/location where the operator works
+</ParamField>
+
+<ParamField path="cel_ope" type="int">
+  Cell phone number of the operator (stored as integer)
+</ParamField>
+
+<ParamField path="estado_ope" type="String">
+  Current status of the operator (e.g., active, inactive)
+</ParamField>
+
+## Methods
+
+All fields have standard getter and setter methods following JavaBean conventions:
+
+- `getId_ope()` / `setId_ope(int)`
+- `getNom_ope()` / `setNom_ope(String)`
+- `getDist_ope()` / `setDist_ope(String)`
+- `getCel_ope()` / `setCel_ope(int)`
+- `getEstado_ope()` / `setEstado_ope(String)`
+
+## Entity Class
+
+```java
+package com.bienes.entidad;
+
+public class Operador {
+
+    public int id_ope;
+    public String nom_ope;
+    public String dist_ope;
+    public int cel_ope;
+    public String estado_ope;
+    
+    public int getId_ope() {
+        return id_ope;
+    }
+    public void setId_ope(int id_ope) {
+        this.id_ope = id_ope;
+    }
+    public String getNom_ope() {
+        return nom_ope;
+    }
+    public void setNom_ope(String nom_ope) {
+        this.nom_ope = nom_ope;
+    }
+    public String getDist_ope() {
+        return dist_ope;
+    }
+    public void setDist_ope(String dist_ope) {
+        this.dist_ope = dist_ope;
+    }
+    public int getCel_ope() {
+        return cel_ope;
+    }
+    public void setCel_ope(int cel_ope) {
+        this.cel_ope = cel_ope;
+    }
+    public String getEstado_ope() {
+        return estado_ope;
+    }
+    public void setEstado_ope(String estado_ope) {
+        this.estado_ope = estado_ope;
+    }
+}
+```
+
+## Usage Example
+
+### Creating an Operador Instance
+
+```java
+import com.bienes.entidad.Operador;
+
+// Create a new operator
+Operador operador = new Operador();
+operador.setNom_ope("Juan Pérez");
+operador.setDist_ope("Miraflores");
+operador.setCel_ope(987654321);
+operador.setEstado_ope("Activo");
+```
+
+### Using with DAO Layer
+
+```java
+import com.bienes.interfaces.OperadorDAO;
+import com.bienes.dao.MySqlOperadorDAO;
+
+// Initialize DAO
+OperadorDAO dao = new MySqlOperadorDAO();
+
+// Save a new operator
+int result = dao.save(operador);
+
+// Find operator by ID
+Operador foundOperador = dao.findById(1);
+
+// Update operator information
+foundOperador.setCel_ope(912345678);
+foundOperador.setEstado_ope("En descanso");
+dao.update(foundOperador);
+
+// List all operators
+List<Operador> allOperadores = dao.listAll();
+
+// Delete an operator
+dao.delete(1);
+```
+
+### Filtering Active Operators
+
+```java
+// Get all operators and filter by status
+List<Operador> allOperadores = dao.listAll();
+List<Operador> activeOperadores = allOperadores.stream()
+    .filter(op -> "Activo".equals(op.getEstado_ope()))
+    .collect(Collectors.toList());
+
+// Display active operators
+for (Operador op : activeOperadores) {
+    System.out.println(op.getNom_ope() + " - " + op.getDist_ope());
+}
+```
+
+## Related Entities
+
+<CardGroup cols={2}>
+  <Card title="Bienes" icon="box" href="/api/entities/bienes">
+    Operators may be responsible for managing and handling assets in the system
+  </Card>
+  <Card title="Proveedor" icon="truck" href="/api/entities/proveedor">
+    Similar entity structure - both represent personnel/organizations in the system
+  </Card>
+</CardGroup>
+
+## Database Table
+
+The entity maps to the `operador` table with the following structure:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id_ope | INT | Primary key (auto-increment) |
+| nom_ope | VARCHAR | Operator name |
+| dist_ope | VARCHAR | District/location |
+| cel_ope | INT | Cell phone number |
+| estado_ope | VARCHAR | Status (active/inactive) |
+
+## Notes
+
+<Note>
+  The `cel_ope` field is stored as an `int` type. This limits phone numbers to 2,147,483,647 and doesn't support international formats with '+' or formatting characters. Consider using `String` or `long` for more flexibility.
+</Note>
+
+<Tip>
+  Common status values for `estado_ope` include:
+  - "Activo" - Operator is currently active
+  - "Inactivo" - Operator is inactive
+  - "En descanso" - Operator is on break
+  - "De vacaciones" - Operator is on vacation
+</Tip>

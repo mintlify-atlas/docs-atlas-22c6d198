@@ -1,0 +1,350 @@
+---
+title: Application Configuration
+description: Configure the asset management application for deployment including database connections, servlet mappings, and environment settings
+---
+
+This guide covers all configuration aspects needed to deploy the asset management application successfully.
+
+## Database Connection Configuration
+
+The application uses a centralized database connection class to manage MySQL connections.
+
+### MySqlConexion Configuration
+
+The database connection is configured in `MySqlConexion.java`:
+
+<CodeGroup>
+
+```java MySqlConexion.java
+package com.bienes.utils;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+public class MySqlConexion {
+	
+	public static Connection getConectar() {
+		Connection cn=null;
+		try {
+			String url,user,pass;
+			//carga de la clase que se encuentra en el jar "mysql-connector-java-8.0.21.jar"
+			Class.forName("com.mysql.cj.jdbc.Driver");
+			url="jdbc:mysql://localhost:3306/gestionbienes?serverTimezone=UTC";
+			user="root";
+			pass="mysql";
+			//establacer la conexión a la BD. 
+			cn=DriverManager.getConnection(url,user,pass);
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return cn;
+	}
+}
+```
+
+</CodeGroup>
+
+### Key Configuration Parameters
+
+| Parameter | Default Value | Description |
+|-----------|--------------|-------------|
+| **Driver Class** | `com.mysql.cj.jdbc.Driver` | MySQL JDBC driver (version 8.0.21+) |
+| **Database URL** | `jdbc:mysql://localhost:3306/gestionbienes` | Connection URL with timezone parameter |
+| **Database Name** | `gestionbienes` | Main application database |
+| **Username** | `root` | Database user (change for production) |
+| **Password** | `mysql` | Database password (change for production) |
+| **Server Timezone** | `UTC` | Prevents timezone issues |
+
+<Warning>
+  The default configuration uses `root` user with password `mysql`. **You must change these credentials for production environments** to secure your database.
+</Warning>
+
+## Environment-Specific Configuration
+
+Modify the database connection settings based on your environment:
+
+<Steps>
+  <Step title="Development Environment">
+    Use localhost and default ports:
+    ```java
+    url="jdbc:mysql://localhost:3306/gestionbienes?serverTimezone=UTC";
+    user="root";
+    pass="mysql";
+    ```
+  </Step>
+  
+  <Step title="Staging Environment">
+    Update with staging server credentials:
+    ```java
+    url="jdbc:mysql://staging-db-server:3306/gestionbienes?serverTimezone=UTC";
+    user="app_user";
+    pass="secure_staging_password";
+    ```
+  </Step>
+  
+  <Step title="Production Environment">
+    Use production database with secure credentials:
+    ```java
+    url="jdbc:mysql://prod-db-server:3306/gestionbienes?serverTimezone=UTC";
+    user="gestionbienes_user";
+    pass="very_secure_production_password";
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  Consider externalizing these configurations using environment variables or property files for better security and flexibility.
+</Note>
+
+## Web Application Configuration
+
+The `web.xml` deployment descriptor configures the web application.
+
+### Current web.xml Configuration
+
+<CodeGroup>
+
+```xml web.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+         xmlns="http://xmlns.jcp.org/xml/ns/javaee" 
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee 
+         http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd" 
+         id="WebApp_ID" 
+         version="4.0">
+  <display-name>LP2_Proyecto_BIENES</display-name>
+  <welcome-file-list>
+    <welcome-file>index.html</welcome-file>
+    <welcome-file>index.jsp</welcome-file>
+    <welcome-file>index.htm</welcome-file>
+    <welcome-file>default.html</welcome-file>
+    <welcome-file>default.jsp</welcome-file>
+    <welcome-file>default.htm</welcome-file>
+  </welcome-file-list>
+</web-app>
+```
+
+</CodeGroup>
+
+### Welcome Files Configuration
+
+The application is configured with the following welcome file priority:
+
+1. `index.html`
+2. `index.jsp` (primary landing page)
+3. `index.htm`
+4. `default.html`
+5. `default.jsp`
+6. `default.htm`
+
+## Servlet Mappings
+
+The application uses annotation-based servlet configuration. Servlets are mapped using `@WebServlet` annotations.
+
+### Authentication Servlet
+
+```java
+@WebServlet("/ServletLogin")
+public class ServletLogin extends HttpServlet {
+    // Login and session management
+}
+```
+
+**URL Pattern:** `/ServletLogin`
+
+**Parameters:**
+- `tipo`: Action type ("INICIAR" or "CERRAR")
+- `idusuario`: Username for login
+- `password`: User password
+
+### Asset Management Servlets
+
+| Servlet | URL Pattern | Purpose |
+|---------|-------------|----------|
+| ServletBienes | `/ServletBienes` | Asset CRUD operations |
+| ServletBienesJSON | `/ServletBienesJSON` | Asset data in JSON format |
+| ServletProveedor | `/ServletProveedor` | Provider management |
+| ServletProveedorJSON | `/ServletProveedorJSON` | Provider data in JSON |
+| ServletOperador | `/ServletOperador` | Operator management |
+| ServletOperadorJSON | `/ServletOperadorJSON` | Operator data in JSON |
+| ServletGuia | `/ServletGuia` | Purchase guide management |
+| ServletGuiaJSON | `/ServletGuiaJSON` | Purchase guide data in JSON |
+| ServletSunarp | `/ServletSunarp` | SUNARP registration |
+| ServletSunarpJSON | `/ServletSunarpJSON` | SUNARP data in JSON |
+
+<Info>
+  JSON servlets provide RESTful endpoints for AJAX operations and API integrations.
+</Info>
+
+## Session Management
+
+The application implements session-based authentication.
+
+### Session Configuration
+
+Session attributes used by the application:
+
+```java
+HttpSession session = request.getSession();
+session.setAttribute("LISTA", menuData); // User menu options
+```
+
+### Session Timeout (Optional Enhancement)
+
+Add to `web.xml` to configure session timeout:
+
+```xml
+<session-config>
+  <session-timeout>30</session-timeout> <!-- 30 minutes -->
+</session-config>
+```
+
+### Session Invalidation
+
+Sessions are properly invalidated on logout:
+
+```java
+HttpSession session = request.getSession();
+session.invalidate(); // Destroys all session attributes
+```
+
+## Security Considerations
+
+<Warning>
+  **Critical security configurations for production deployment:**
+</Warning>
+
+<Accordion title="Database Security">
+  1. **Change default credentials** - Never use `root` with simple passwords
+  2. **Create dedicated database user** with minimal privileges:
+     ```sql
+     CREATE USER 'gestionbienes_user'@'localhost' IDENTIFIED BY 'strong_password';
+     GRANT SELECT, INSERT, UPDATE, DELETE ON gestionbienes.* TO 'gestionbienes_user'@'localhost';
+     FLUSH PRIVILEGES;
+     ```
+  3. **Use connection pooling** for better performance and security
+  4. **Enable SSL/TLS** for database connections in production
+</Accordion>
+
+<Accordion title="Application Security">
+  1. **Password encryption** - Store hashed passwords, not plain text
+  2. **SQL injection prevention** - The app uses PreparedStatements (good!)
+  3. **Session security** - Configure secure session cookies:
+     ```xml
+     <session-config>
+       <cookie-config>
+         <http-only>true</http-only>
+         <secure>true</secure>
+       </cookie-config>
+     </session-config>
+     ```
+  4. **Authentication filter** - Add a filter to protect all pages except login
+</Accordion>
+
+<Accordion title="Connection Security">
+  1. **Externalize credentials** - Use environment variables or encrypted property files
+  2. **Connection pooling** - Implement using Apache Commons DBCP or Tomcat JDBC Pool
+  3. **Connection timeout** - Set appropriate timeout values
+  4. **Maximum connections** - Limit pool size to prevent resource exhaustion
+</Accordion>
+
+## Required Dependencies
+
+Ensure the following JAR files are in your `WEB-INF/lib` directory:
+
+- `mysql-connector-java-8.0.21.jar` (or later)
+- Java Servlet API (provided by application server)
+
+## Application Server Configuration
+
+### Apache Tomcat
+
+<Steps>
+  <Step title="Tomcat Version">
+    Use Tomcat 9.0+ for Servlet 4.0 support
+  </Step>
+  
+  <Step title="Server Port Configuration">
+    Default: `http://localhost:8080/LP2_Proyecto_BIENES`
+    
+    Modify `server.xml` to change port:
+    ```xml
+    <Connector port="8080" protocol="HTTP/1.1"
+               connectionTimeout="20000"
+               redirectPort="8443" />
+    ```
+  </Step>
+  
+  <Step title="Context Configuration">
+    Create `context.xml` for resource configuration:
+    ```xml
+    <?xml version="1.0" encoding="UTF-8"?>
+    <Context path="/LP2_Proyecto_BIENES">
+      <!-- Context configuration -->
+    </Context>
+    ```
+  </Step>
+</Steps>
+
+## Logging Configuration
+
+The application uses Java logging. Configure log levels in your application server:
+
+```java
+Logger logger = Logger.getLogger(MySqlLoginDAO.class.getName());
+logger.info(String.valueOf(codUsu));
+```
+
+<Note>
+  Consider adding a comprehensive logging framework like Log4j or SLF4J for production deployments.
+</Note>
+
+## Connection String Examples
+
+### Local Development
+```
+jdbc:mysql://localhost:3306/gestionbienes?serverTimezone=UTC
+```
+
+### Remote Server
+```
+jdbc:mysql://192.168.1.100:3306/gestionbienes?serverTimezone=UTC&useSSL=true
+```
+
+### With Additional Parameters
+```
+jdbc:mysql://localhost:3306/gestionbienes?serverTimezone=UTC&useUnicode=true&characterEncoding=UTF-8&useSSL=false
+```
+
+## Troubleshooting
+
+<Accordion title="ClassNotFoundException: com.mysql.cj.jdbc.Driver">
+  **Cause:** MySQL connector JAR is missing
+  
+  **Solution:** Add `mysql-connector-java-8.0.21.jar` to `WEB-INF/lib`
+</Accordion>
+
+<Accordion title="SQLException: Access denied for user">
+  **Cause:** Incorrect database credentials
+  
+  **Solution:** Verify username and password in `MySqlConexion.java`
+</Accordion>
+
+<Accordion title="Connection timeout errors">
+  **Cause:** Database server not accessible
+  
+  **Solution:** Check firewall, database server status, and connection URL
+</Accordion>
+
+## Next Steps
+
+After configuring the application:
+
+1. [Set up the database](/deployment/database-setup) - Create schema and tables
+2. Deploy the WAR file to your application server
+3. Test the login functionality at `/login.jsp`
+4. Verify database connectivity and servlet mappings
