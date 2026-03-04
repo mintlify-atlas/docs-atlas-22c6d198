@@ -1,0 +1,295 @@
+---
+title: 'User Authentication'
+description: 'Secure login system with role-based menu access'
+---
+
+## Overview
+
+The authentication system provides secure user login and session management with role-based access control through personalized navigation menus.
+
+## Login Process
+
+Users access the system through a dedicated login page with username and password authentication.
+
+<Steps>
+  <Step title="Access login page">
+    Navigate to `login.jsp` to access the authentication form
+    
+    ```
+    http://your-server/login.jsp
+    ```
+  </Step>
+  
+  <Step title="Enter credentials">
+    Provide your username (ID Usuario) and password (Contraseña)
+    
+    - Username: Your assigned login ID
+    - Password: Your account password
+  </Step>
+  
+  <Step title="Submit form">
+    Click **Iniciar Sesión** to authenticate
+    
+    The system validates credentials against the database via `ServletLogin`
+  </Step>
+  
+  <Step title="Access granted">
+    Upon successful authentication:
+    - User session is created
+    - Personalized menu is loaded
+    - Redirected to the main dashboard (`index.jsp`)
+  </Step>
+</Steps>
+
+## Authentication Features
+
+### Secure Credential Validation
+
+The system verifies user credentials through the `LoginServices` layer:
+
+```java
+LoginServices service = new LoginServices();
+Usuario usuario = service.loginUsuario(username, password);
+
+if (usuario != null) {
+    // Valid credentials - create session
+    session.setAttribute("USUARIO", usuario);
+} else {
+    // Invalid credentials - display error
+    request.setAttribute("MENSAJE", "Usuario o contraseña incorrectos");
+}
+```
+
+### Session Management
+
+Once authenticated, the user session maintains:
+
+- **Usuario object**: User identity and account information
+- **Menu list**: Authorized navigation items based on user role
+- **Session timeout**: Automatic logout after inactivity
+
+### Role-Based Menu Access
+
+Each user receives a personalized menu based on their permissions:
+
+```java
+// Load authorized menu items
+List<Menu> menuItems = service.menuDelUsuario(usuario.getCodigo());
+session.setAttribute("LISTA", menuItems);
+```
+
+The sidebar dynamically displays only the features the user can access:
+
+```jsp
+<c:forEach items="${sessionScope.LISTA}" var="bean">
+    <li class="nav-link">
+        <a href="${bean.url}">
+            <i class="${bean.icon} icon"></i>
+            <span class="text nav-text">${bean.nombre}</span>
+        </a>
+    </li>
+</c:forEach>
+```
+
+## User Interface
+
+### Login Form
+
+The login page features:
+
+- **Clean, modern design** with Bootstrap 5 styling
+- **Responsive layout** that adapts to different screen sizes
+- **Form validation** requiring both username and password
+- **Error messaging** for invalid credentials
+- **Background image** for professional appearance
+
+### Dashboard Navigation
+
+After login, users see:
+
+- **Collapsible sidebar menu** with authorized options
+- **User welcome message** on the dashboard
+- **Logout option** in the sidebar footer
+- **Icon-based navigation** using Boxicons
+
+## Common Menu Items
+
+Depending on user role, the menu may include:
+
+<CardGroup cols={2}>
+  <Card title="Gestión de Bienes" icon="box">
+    Asset management and inventory tracking
+  </Card>
+  <Card title="Proveedores" icon="store">
+    Supplier database management
+  </Card>
+  <Card title="Guías de Compra" icon="file-invoice">
+    Purchase order processing
+  </Card>
+  <Card title="SUNARP" icon="building">
+    Property registration system
+  </Card>
+  <Card title="Operadores" icon="user">
+    Personnel management
+  </Card>
+  <Card title="Consultas" icon="search">
+    Asset queries and reports
+  </Card>
+</CardGroup>
+
+## Logout Process
+
+Users can log out at any time:
+
+<Steps>
+  <Step title="Click logout option">
+    Select **Cerrar Sesión** from the sidebar menu
+  </Step>
+  
+  <Step title="Session termination">
+    The system invalidates the user session:
+    
+    ```java
+    HttpSession session = request.getSession();
+    session.invalidate();
+    ```
+  </Step>
+  
+  <Step title="Redirect to login">
+    User is redirected back to `login.jsp`
+  </Step>
+</Steps>
+
+## Security Features
+
+### Input Validation
+
+<Info>
+  Both username and password fields are marked as `required`, preventing empty submissions.
+</Info>
+
+### Session Protection
+
+- Sessions expire after inactivity
+- Logout completely clears session data
+- Unauthorized access attempts redirect to login
+
+### Error Handling
+
+Failed login attempts display user-friendly messages:
+
+```
+MENSAJE: Usuario o contraseña incorrectos
+```
+
+## Technical Implementation
+
+### Servlet Endpoints
+
+**Login:** `ServletLogin?tipo=INICIAR`
+- Validates credentials
+- Creates session
+- Loads user menu
+- Redirects to dashboard
+
+**Logout:** `ServletLogin?tipo=CERRAR`
+- Invalidates session
+- Redirects to login page
+
+### Database Tables
+
+**acceso** - User accounts
+- `id_acceso`: User ID
+- `login_acceso`: Username
+- `pass_acceso`: Password
+
+**menu** - Navigation items
+- `id_menu`: Menu item ID
+- `id_acceso`: User ID (foreign key)
+- `descrip_menu`: Display name
+- `url_menu`: Target URL
+- `icon_menu`: Icon class
+
+## Best Practices
+
+<Warning>
+  **Password Security**: The current implementation stores passwords in the database. For production use, implement password hashing (BCrypt, Argon2) to protect user credentials.
+</Warning>
+
+<Tip>
+  **HTTPS**: Always use HTTPS in production to encrypt credentials during transmission.
+</Tip>
+
+<Note>
+  **Session Timeout**: Configure appropriate session timeout values based on security requirements and user convenience.
+</Note>
+
+## Troubleshooting
+
+<Accordion title="Unable to log in with valid credentials">
+
+**Possible causes:**
+- Database connection issues
+- Incorrect username/password
+- User account disabled
+- Session cookie blocked
+
+**Solutions:**
+- Verify database connectivity
+- Confirm credentials are correct
+- Check user status in database
+- Enable cookies in browser
+
+</Accordion>
+
+<Accordion title="Menu not displaying after login">
+
+**Possible causes:**
+- No menu items assigned to user
+- Database relationship issue
+- Session not properly created
+
+**Solutions:**
+- Verify menu entries in database for user
+- Check foreign key relationship between acceso and menu tables
+- Confirm LISTA attribute in session
+
+</Accordion>
+
+<Accordion title="Session expires too quickly">
+
+**Solution:**
+Configure session timeout in `web.xml`:
+
+```xml
+<session-config>
+    <session-timeout>30</session-timeout> <!-- Minutes -->
+</session-config>
+```
+
+</Accordion>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Asset Management" icon="box" href="/features/asset-management">
+    Access after authentication
+  </Card>
+  <Card title="Supplier Management" icon="store" href="/features/supplier-management">
+    Requires user login
+  </Card>
+</CardGroup>
+
+## API Reference
+
+<CardGroup cols={3}>
+  <Card title="Usuario Entity" icon="user" href="/api/entities/usuario">
+    User account structure
+  </Card>
+  <Card title="Menu Entity" icon="bars" href="/api/entities/menu">
+    Navigation menu items
+  </Card>
+  <Card title="LoginServices" icon="gears" href="/api/services/login-service">
+    Authentication service
+  </Card>
+</CardGroup>

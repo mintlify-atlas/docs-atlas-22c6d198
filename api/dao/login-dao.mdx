@@ -1,0 +1,266 @@
+---
+title: 'LoginDAO'
+description: 'Data access layer for user authentication and menu authorization'
+---
+
+## Overview
+
+The `LoginDAO` interface and its MySQL implementation handle database operations for user authentication and retrieval of authorized menu items.
+
+**Package:** `com.bienes.interfaces` (interface), `com.bienes.dao` (implementation)  
+**Implementation:** `MySqlLoginDAO`
+
+## Interface Methods
+
+### iniciarSesion
+
+Validates user credentials and retrieves user account if valid.
+
+<ParamField path="login" type="String" required>
+  Username to authenticate
+</ParamField>
+
+<ParamField path="clave" type="String" required>
+  Password to verify
+</ParamField>
+
+<ResponseField name="Usuario" type="Usuario">
+  Returns Usuario object if credentials match, null if invalid
+</ResponseField>
+
+### traerOpciones
+
+Retrieves the list of menu items authorized for a specific user.
+
+<ParamField path="codUsu" type="int" required>
+  User ID to load menu permissions for
+</ParamField>
+
+<ResponseField name="List<Menu>" type="List<Menu>">
+  List of authorized menu items for the user
+</ResponseField>
+
+## MySQL Implementation
+
+### iniciarSesion Implementation
+
+```java
+// MySqlLoginDAO.java:19-58
+public Usuario iniciarSesion(String login, String clave) {
+    Usuario bean = null;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    ResultSet rs = null;
+    
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "select id_acceso, login_acceso, pass_acceso " +
+                     "from acceso " +
+                     "where login_acceso=? and pass_acceso=?";
+        pstm = cn.prepareStatement(sql);
+        pstm.setString(1, login);
+        pstm.setString(2, clave);
+        rs = pstm.executeQuery();
+        
+        if (rs.next()) {
+            bean = new Usuario();
+            bean.setCodigo(rs.getInt(1));
+            bean.setLogin(rs.getString(2));
+            bean.setClave(rs.getString(3));
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        // Close resources
+        if (rs != null) rs.close();
+        if (pstm != null) pstm.close();
+        if (cn != null) cn.close();
+    }
+    
+    return bean;
+}
+```
+
+**SQL Query:**
+
+```sql
+SELECT id_acceso, login_acceso, pass_acceso 
+FROM acceso 
+WHERE login_acceso=? AND pass_acceso=?
+```
+
+### traerOpciones Implementation
+
+```java
+// MySqlLoginDAO.java:61-107
+public List<Menu> traerOpciones(int codUsu) {
+    List<Menu> lista = new ArrayList<Menu>();
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    ResultSet rs = null;
+    
+    try {
+        cn = MySqlConexion.getConectar();
+        String sql = "select a.id_acceso, m.descrip_menu, m.url_menu, m.icon_menu " +
+                     "from acceso a " +
+                     "join menu m on a.id_acceso=m.id_acceso " +
+                     "where a.id_acceso=?";
+        pstm = cn.prepareStatement(sql);
+        pstm.setInt(1, codUsu);
+        rs = pstm.executeQuery();
+        
+        while (rs.next()) {
+            Menu bean = new Menu();
+            bean.setCodigo(rs.getInt(1));
+            bean.setNombre(rs.getString(2));
+            bean.setUrl(rs.getString(3));
+            bean.setIcon(rs.getString(4));
+            lista.add(bean);
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        // Close resources
+    }
+    
+    return lista;
+}
+```
+
+**SQL Query:**
+
+```sql
+SELECT a.id_acceso, m.descrip_menu, m.url_menu, m.icon_menu 
+FROM acceso a 
+JOIN menu m ON a.id_acceso = m.id_acceso 
+WHERE a.id_acceso = ?
+```
+
+## Database Tables
+
+### acceso Table
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id_acceso` | INT | User ID (primary key) |
+| `login_acceso` | VARCHAR | Username (unique) |
+| `pass_acceso` | VARCHAR | Password |
+
+### menu Table
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id_menu` | INT | Menu item ID (primary key) |
+| `id_acceso` | INT | User ID (foreign key) |
+| `descrip_menu` | VARCHAR | Menu item display name |
+| `url_menu` | VARCHAR | Target URL |
+| `icon_menu` | VARCHAR | Icon class |
+
+## Usage Example
+
+### Authentication
+
+```java
+LoginDAO dao = new MySqlLoginDAO();
+Usuario usuario = dao.iniciarSesion("jperez", "password123");
+
+if (usuario != null) {
+    // Valid credentials
+    System.out.println("Welcome: " + usuario.getLogin());
+} else {
+    // Invalid credentials
+    System.out.println("Authentication failed");
+}
+```
+
+### Loading User Menu
+
+```java
+LoginDAO dao = new MySqlLoginDAO();
+int userId = 1;
+List<Menu> menuItems = dao.traerOpciones(userId);
+
+for (Menu item : menuItems) {
+    System.out.println(item.getNombre() + " -> " + item.getUrl());
+}
+```
+
+## Security Considerations
+
+<Warning>
+  **Plain Text Password Comparison**: The current implementation compares passwords in plain text. This is a security vulnerability.
+  
+  **Recommended Fix:**
+  - Store password hashes (BCrypt, Argon2) in the database
+  - Hash the input password before comparison
+  - Use salted hashing to prevent rainbow table attacks
+</Warning>
+
+<Note>
+  **SQL Injection Protection**: The implementation correctly uses PreparedStatement with parameterized queries, protecting against SQL injection attacks.
+</Note>
+
+## Improved Authentication Example
+
+```java
+// Recommended implementation with password hashing
+public Usuario iniciarSesion(String login, String clave) {
+    Usuario bean = null;
+    Connection cn = null;
+    PreparedStatement pstm = null;
+    ResultSet rs = null;
+    
+    try {
+        cn = MySqlConexion.getConectar();
+        // Retrieve stored hash for user
+        String sql = "select id_acceso, login_acceso, pass_acceso " +
+                     "from acceso where login_acceso=?";
+        pstm = cn.prepareStatement(sql);
+        pstm.setString(1, login);
+        rs = pstm.executeQuery();
+        
+        if (rs.next()) {
+            String storedHash = rs.getString(3);
+            
+            // Verify password against hash
+            if (BCrypt.checkpw(clave, storedHash)) {
+                bean = new Usuario();
+                bean.setCodigo(rs.getInt(1));
+                bean.setLogin(rs.getString(2));
+                // Don't set password in returned object
+            }
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        // Close resources
+    }
+    
+    return bean;
+}
+```
+
+## Related Components
+
+<CardGroup cols={3}>
+  <Card title="Usuario" icon="user" href="/api/entities/usuario">
+    User entity for authentication
+  </Card>
+  <Card title="Menu" icon="bars" href="/api/entities/menu">
+    Menu navigation entity
+  </Card>
+  <Card title="LoginServices" icon="gears" href="/api/services/login-service">
+    Authentication service layer
+  </Card>
+</CardGroup>
+
+## Connection Management
+
+The DAO follows the standard connection pattern:
+1. Obtain connection from `MySqlConexion`
+2. Create PreparedStatement
+3. Execute query
+4. Process ResultSet
+5. **Always** close resources in finally block
+
+This ensures proper connection pooling and prevents resource leaks.

@@ -7,11 +7,6 @@
     "light": "#3b82f6",
     "dark": "#1e3a8a"
   },
-  "favicon": "/favicon.svg",
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
   "navbar": {
     "primary": {
       "type": "github",
@@ -39,6 +34,7 @@
           {
             "group": "Core Features",
             "pages": [
+              "features/authentication",
               "features/asset-management",
               "features/supplier-management",
               "features/purchase-orders",
@@ -73,7 +69,10 @@
               "api/entities/proveedor",
               "api/entities/guia",
               "api/entities/sunarp",
-              "api/entities/operador"
+              "api/entities/operador",
+              "api/entities/usuario",
+              "api/entities/menu",
+              "api/entities/acta-conformidad"
             ]
           },
           {
@@ -83,7 +82,8 @@
               "api/services/proveedor-service",
               "api/services/guia-service",
               "api/services/sunarp-service",
-              "api/services/operador-service"
+              "api/services/operador-service",
+              "api/services/login-service"
             ]
           },
           {
@@ -94,7 +94,8 @@
               "api/dao/proveedor-dao",
               "api/dao/guia-dao",
               "api/dao/sunarp-dao",
-              "api/dao/operador-dao"
+              "api/dao/operador-dao",
+              "api/dao/login-dao"
             ]
           }
         ]

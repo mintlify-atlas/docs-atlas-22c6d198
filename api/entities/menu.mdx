@@ -1,0 +1,131 @@
+---
+title: "Menu"
+description: "Entity class representing navigation menu items and permissions"
+---
+
+## Overview
+
+The `Menu` entity represents navigation menu items in the asset management system. It defines the menu structure, URLs, and icons for the sidebar navigation based on user permissions.
+
+**Package:** `com.bienes.entidad`
+
+## Fields Reference
+
+<ParamField path="codigo" type="int">
+  Unique identifier for the menu item (primary key)
+</ParamField>
+
+<ParamField path="nombre" type="String">
+  Display name of the menu item (e.g., "Gestión de Bienes", "Proveedores")
+</ParamField>
+
+<ParamField path="url" type="String">
+  Navigation URL for the menu item (e.g., "Bienes.jsp", "proveedor.jsp")
+</ParamField>
+
+<ParamField path="icon" type="String">
+  Icon class for the menu item (Boxicons class, e.g., "bx bx-box")
+</ParamField>
+
+## Methods
+
+### Getters and Setters
+
+```java
+// Identity
+public int getCodigo()
+public void setCodigo(int codigo)
+
+// Display Properties
+public String getNombre()
+public void setNombre(String nombre)
+
+public String getUrl()
+public void setUrl(String url)
+
+public String getIcon()
+public void setIcon(String icon)
+```
+
+## Entity Class
+
+```java
+package com.bienes.entidad;
+
+public class Menu {
+    private int codigo;
+    private String nombre, url, icon;
+    
+    // Getters and setters...
+}
+```
+
+## Usage Example
+
+### Loading User Menu
+
+```java
+// Retrieve menu items for logged-in user
+LoginServices service = new LoginServices();
+List<Menu> menuItems = service.obtenerMenu(userId);
+
+// Store in session for sidebar rendering
+session.setAttribute("LISTA", menuItems);
+```
+
+### Menu Rendering (JSP)
+
+```jsp
+<!-- Display menu in sidebar navigation -->
+<c:forEach items="${sessionScope.LISTA}" var="bean">
+    <li class="nav-link">
+        <a href="${bean.url}">
+            <i class="${bean.icon} icon"></i>
+            <span class="text nav-text">${bean.nombre}</span>
+        </a>
+    </li>
+</c:forEach>
+```
+
+## Related Components
+
+<CardGroup cols={2}>
+  <Card title="Usuario" icon="user" href="/api/entities/usuario">
+    User accounts with menu permissions
+  </Card>
+  <Card title="LoginServices" icon="right-to-bracket" href="/api/services/login-service">
+    Service for loading user-specific menus
+  </Card>
+</CardGroup>
+
+## Database Table
+
+The `Menu` entity maps to the `menu` table:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `codigo` | INT | Menu item ID (primary key) |
+| `nombre` | VARCHAR | Menu item display name |
+| `url` | VARCHAR | Target URL/page |
+| `icon` | VARCHAR | Boxicons CSS class |
+
+## Common Menu Items
+
+<Accordion title="Standard Menu Configuration">
+
+Typical menu items in the system:
+
+| Name | URL | Icon |
+|------|-----|------|
+| Bienes | Bienes.jsp | bx bx-box |
+| Proveedores | proveedor.jsp | bx bx-store |
+| Guías de Compra | Guia.jsp | bx bx-file |
+| SUNARP | InscripcionSUNARP.jsp | bx bx-building |
+| Operadores | operador.jsp | bx bx-user |
+| Consultas | ConsultarBienPorOrdendeCompra.jsp | bx bx-search |
+
+</Accordion>
+
+<Info>
+  Menu items are dynamically loaded based on user roles and permissions, providing role-based access control through the navigation system.
+</Info>

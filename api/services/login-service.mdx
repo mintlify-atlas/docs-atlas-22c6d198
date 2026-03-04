@@ -1,0 +1,219 @@
+---
+title: 'LoginServices'
+description: 'Service layer for user authentication and menu authorization'
+---
+
+## Overview
+
+`LoginServices` provides authentication services for user login and retrieval of authorized menu items based on user permissions.
+
+**Package:** `com.bienes.services`  
+**Uses:** `LoginDAO`, `DAOFactory`
+
+## Methods
+
+### loginUsuario
+
+Authenticates a user with login credentials.
+
+<ParamField path="login" type="String" required>
+  Username for authentication
+</ParamField>
+
+<ParamField path="clave" type="String" required>
+  Password for authentication
+</ParamField>
+
+<ResponseField name="Usuario" type="Usuario">
+  Returns Usuario object if credentials are valid, null otherwise
+</ResponseField>
+
+**Implementation:**
+
+```java
+public Usuario loginUsuario(String login, String clave) {
+    return objUsuario.iniciarSesion(login, clave);
+}
+```
+
+**Example:**
+
+```java
+LoginServices service = new LoginServices();
+Usuario usuario = service.loginUsuario("jperez", "password123");
+
+if (usuario != null) {
+    // Login successful
+    session.setAttribute("USUARIO", usuario);
+    response.sendRedirect("index.jsp");
+} else {
+    // Invalid credentials
+    request.setAttribute("MENSAJE", "Usuario o contraseña incorrectos");
+    request.getRequestDispatcher("login.jsp").forward(request, response);
+}
+```
+
+### menuDelUsuario
+
+Retrieves authorized menu items for a specific user.
+
+<ParamField path="codUsu" type="int" required>
+  User code/ID to retrieve menu permissions for
+</ParamField>
+
+<ResponseField name="List<Menu>" type="List<Menu>">
+  List of menu items the user is authorized to access
+</ResponseField>
+
+**Implementation:**
+
+```java
+public List<Menu> menuDelUsuario(int codUsu) {
+    return objUsuario.traerOpciones(codUsu);
+}
+```
+
+**Example:**
+
+```java
+LoginServices service = new LoginServices();
+int userId = usuario.getCodigo();
+List<Menu> menuItems = service.menuDelUsuario(userId);
+
+// Store menu in session for sidebar rendering
+session.setAttribute("LISTA", menuItems);
+```
+
+## Service Class
+
+```java
+package com.bienes.services;
+
+import java.util.List;
+import com.bienes.entidad.*;
+import com.bienes.fabrica.DAOFactory;
+import com.bienes.interfaces.LoginDAO;
+
+public class LoginServices {
+    private DAOFactory fabrica = DAOFactory.getDAOFactory(1);
+    private LoginDAO objUsuario = fabrica.getLoginDAO();
+    
+    public Usuario loginUsuario(String login, String clave) {
+        return objUsuario.iniciarSesion(login, clave);
+    }
+    
+    public List<Menu> menuDelUsuario(int codUsu) {
+        return objUsuario.traerOpciones(codUsu);
+    }
+}
+```
+
+## Usage in Servlets
+
+### ServletLogin Integration
+
+```java
+@WebServlet("/ServletLogin")
+public class ServletLogin extends HttpServlet {
+    protected void service(HttpServletRequest request, 
+                          HttpServletResponse response) {
+        String tipo = request.getParameter("tipo");
+        
+        if (tipo.equals("INICIAR")) {
+            String login = request.getParameter("idusuario");
+            String clave = request.getParameter("password");
+            
+            LoginServices service = new LoginServices();
+            Usuario usuario = service.loginUsuario(login, clave);
+            
+            if (usuario != null) {
+                HttpSession session = request.getSession();
+                session.setAttribute("USUARIO", usuario);
+                
+                // Load user menu
+                List<Menu> menu = service.menuDelUsuario(usuario.getCodigo());
+                session.setAttribute("LISTA", menu);
+                
+                response.sendRedirect("index.jsp");
+            } else {
+                request.setAttribute("MENSAJE", 
+                    "Usuario o contraseña incorrectos");
+                request.getRequestDispatcher("login.jsp")
+                    .forward(request, response);
+            }
+        } else if (tipo.equals("CERRAR")) {
+            // Logout
+            HttpSession session = request.getSession();
+            session.invalidate();
+            response.sendRedirect("login.jsp");
+        }
+    }
+}
+```
+
+## Authentication Flow
+
+<Steps>
+  <Step title="User submits credentials">
+    Login form (login.jsp) posts username and password to ServletLogin
+  </Step>
+  
+  <Step title="Service validates credentials">
+    LoginServices.loginUsuario() queries database via LoginDAO
+  </Step>
+  
+  <Step title="Load user menu">
+    If valid, menuDelUsuario() retrieves authorized navigation items
+  </Step>
+  
+  <Step title="Create session">
+    Usuario and Menu list stored in HttpSession
+  </Step>
+  
+  <Step title="Redirect to dashboard">
+    User redirected to index.jsp with personalized menu
+  </Step>
+</Steps>
+
+## Related Components
+
+<CardGroup cols={3}>
+  <Card title="Usuario" icon="user" href="/api/entities/usuario">
+    User entity for authentication
+  </Card>
+  <Card title="Menu" icon="bars" href="/api/entities/menu">
+    Navigation menu items entity
+  </Card>
+  <Card title="LoginDAO" icon="database" href="/api/dao/login-dao">
+    Data access layer for authentication
+  </Card>
+</CardGroup>
+
+## Security Considerations
+
+<Warning>
+  Implement proper password hashing (BCrypt, Argon2) before comparing credentials. The current implementation should be enhanced with secure password storage.
+</Warning>
+
+<Info>
+  Consider implementing session timeout, brute-force protection, and HTTPS-only cookies for production deployments.
+</Info>
+
+## Error Handling
+
+```java
+try {
+    Usuario usuario = service.loginUsuario(login, clave);
+    if (usuario != null) {
+        // Success
+    } else {
+        // Invalid credentials - log attempt
+        logger.warn("Failed login attempt for user: " + login);
+    }
+} catch (Exception e) {
+    // Database connection error
+    logger.error("Login service error", e);
+    request.setAttribute("MENSAJE", 
+        "Error del sistema. Intente nuevamente.");
+}
+```

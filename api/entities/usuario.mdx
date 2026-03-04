@@ -1,0 +1,135 @@
+---
+title: "Usuario"
+description: "Entity class representing user accounts and authentication credentials"
+---
+
+## Overview
+
+The `Usuario` entity represents user accounts in the asset management system. It stores authentication credentials and user identity information used by the login system.
+
+**Package:** `com.bienes.entidad`
+
+## Fields Reference
+
+<ParamField path="codigo" type="int">
+  Unique identifier for the user account (primary key)
+</ParamField>
+
+<ParamField path="nombres" type="String">
+  User's first name(s)
+</ParamField>
+
+<ParamField path="apellidos" type="String">
+  User's last name(s)
+</ParamField>
+
+<ParamField path="login" type="String">
+  Username used for authentication
+</ParamField>
+
+<ParamField path="clave" type="String">
+  Password for user authentication (stored value)
+</ParamField>
+
+## Methods
+
+### Getters and Setters
+
+```java
+// Identity
+public int getCodigo()
+public void setCodigo(int codigo)
+
+// Personal Information
+public String getNombres()
+public void setNombres(String nombres)
+
+public String getApellidos()
+public void setApellidos(String apellidos)
+
+// Authentication
+public String getLogin()
+public void setLogin(String login)
+
+public String getClave()
+public void setClave(String clave)
+```
+
+## Entity Class
+
+```java
+package com.bienes.entidad;
+
+public class Usuario {
+    private int codigo;
+    private String nombres, apellidos, login, clave;
+    
+    // Getters and setters...
+}
+```
+
+## Usage Example
+
+### Authentication
+
+```java
+// Verify user credentials during login
+LoginServices service = new LoginServices();
+Usuario usuario = service.validarUsuario(login, password);
+
+if (usuario != null) {
+    // Store user in session
+    session.setAttribute("USUARIO", usuario);
+    
+    // Display user name
+    String fullName = usuario.getNombres() + " " + usuario.getApellidos();
+}
+```
+
+### User Creation
+
+```java
+// Create new user account
+Usuario newUser = new Usuario();
+newUser.setNombres("Juan");
+newUser.setApellidos("Pérez");
+newUser.setLogin("jperez");
+newUser.setClave(hashedPassword); // Should be hashed
+
+// Save to database via LoginDAO
+LoginDAO dao = new MySqlLoginDAO();
+int result = dao.save(newUser);
+```
+
+## Related Components
+
+<CardGroup cols={2}>
+  <Card title="LoginServices" icon="right-to-bracket" href="/api/services/login-service">
+    Authentication and user validation service
+  </Card>
+  <Card title="Menu" icon="bars" href="/api/entities/menu">
+    User menu permissions and navigation
+  </Card>
+</CardGroup>
+
+## Database Table
+
+The `Usuario` entity maps to the `acceso` table:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `codigo` | INT | User ID (primary key, auto-increment) |
+| `nombres` | VARCHAR | First name(s) |
+| `apellidos` | VARCHAR | Last name(s) |
+| `login` | VARCHAR | Username (unique) |
+| `clave` | VARCHAR | Password hash |
+
+## Security Considerations
+
+<Warning>
+  The `clave` field should store hashed passwords, not plain text. Implement proper password hashing (BCrypt, Argon2, etc.) before storing credentials.
+</Warning>
+
+<Info>
+  The login field should be unique to prevent duplicate usernames. Implement database constraints and validation at the application level.
+</Info>
