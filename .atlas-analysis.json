@@ -1,0 +1,107 @@
+{
+  "projectType": "saas",
+  "projectName": "Sistema de Gestión de Bienes",
+  "projectDescription": "Enterprise asset management system for tracking goods, suppliers, purchase orders, and SUNARP registrations",
+  "theme": "linden",
+  "primaryColor": "#1e40af",
+  "lightColor": "#3b82f6",
+  "darkColor": "#1e3a8a",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/asset-management",
+              "features/supplier-management",
+              "features/purchase-orders",
+              "features/sunarp-registration",
+              "features/operator-management"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "architecture/overview",
+              "architecture/database-schema",
+              "architecture/design-patterns"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/configuration",
+              "deployment/database-setup"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Entities",
+            "pages": [
+              "api/entities/bienes",
+              "api/entities/proveedor",
+              "api/entities/guia",
+              "api/entities/sunarp",
+              "api/entities/operador"
+            ]
+          },
+          {
+            "group": "Services",
+            "pages": [
+              "api/services/bienes-service",
+              "api/services/proveedor-service",
+              "api/services/guia-service",
+              "api/services/sunarp-service",
+              "api/services/operador-service"
+            ]
+          },
+          {
+            "group": "Data Access",
+            "pages": [
+              "api/dao/overview",
+              "api/dao/bienes-dao",
+              "api/dao/proveedor-dao",
+              "api/dao/guia-dao",
+              "api/dao/sunarp-dao",
+              "api/dao/operador-dao"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Asset tracking and inventory management",
+    "Supplier database and management",
+    "Purchase order processing and tracking",
+    "SUNARP property registration integration",
+    "Multi-user operator management",
+    "Role-based access control with login system"
+  ],
+  "publicApiSurface": [
+    "ServletBienesJSON - Asset data endpoint",
+    "ServletProveedorJSON - Supplier data endpoint",
+    "ServletGuiaJSON - Purchase order data endpoint",
+    "ServletSunarpJSON - SUNARP registration data endpoint",
+    "ServletOperadorJSON - Operator data endpoint",
+    "BienesServices - Asset management operations",
+    "ProveedorServices - Supplier management operations",
+    "GuiaServices - Purchase order operations",
+    "InscripcionSUNARPServices - SUNARP registration operations",
+    "OperadorServices - Operator management operations"
+  ]
+}
